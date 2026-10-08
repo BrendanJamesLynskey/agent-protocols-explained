@@ -8,6 +8,7 @@ import { formatValue, lookup } from "@/lib/proto/values";
 import VENDORED from "@/lib/engine/vendor/VENDORED.json";
 import {
   AGENTS_HUB,
+  CONTEXT_URL,
   DECODER_URL,
   ENGINE_URL,
   GITHUB_URL,
@@ -51,6 +52,10 @@ export default function AboutPage(): JSX.Element {
           animation. It is the second of a family of agent sites, after{" "}
           <a href={HARNESSES_URL} className={A}>
             Agent Harnesses Explained
+          </a>{" "}
+          and followed by{" "}
+          <a href={CONTEXT_URL} className={A}>
+            Agent Context Explained
           </a>
           , next to the LLM-systems sites (the{" "}
           <a href={DECODER_URL} className={A}>

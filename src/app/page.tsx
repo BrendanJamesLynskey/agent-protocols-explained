@@ -5,6 +5,7 @@ import { formatValue, lookup } from "@/lib/proto/values";
 import { SECTIONS } from "@/lib/mdx/sections";
 import {
   ARCHITECTURES_URL,
+  CONTEXT_URL,
   DECODER_URL,
   ENGINE_URL,
   HARNESSES_URL,
@@ -107,6 +108,10 @@ export default function HomePage(): JSX.Element {
         The second of a family of agent sites, after{" "}
         <a href={HARNESSES_URL} className={LINK}>
           Agent Harnesses Explained
+        </a>{" "}
+        and followed by{" "}
+        <a href={CONTEXT_URL} className={LINK}>
+          Agent Context Explained
         </a>
         , alongside the LLM-systems sites: the{" "}
         <a href={DECODER_URL} className={LINK}>

@@ -19,8 +19,8 @@ or opens a real connection.
 
 ![Chapter 8: a task between two agents over A2A, its state machine lighting up as each state arrives](docs/media/agent-to-agent.gif)
 
-Part of a family of companion sites. Agents: [Agent Harnesses Explained](https://agent-harnesses-explained.vercel.app)
-and this one. LLM systems: the [Transformer Decoder Explainer](https://transformer-decoder-explained.vercel.app),
+Part of a family of companion sites. Agents: [Agent Harnesses Explained](https://agent-harnesses-explained.vercel.app),
+this one, then [Agent Context Explained](https://agent-context-explained.vercel.app). LLM systems: the [Transformer Decoder Explainer](https://transformer-decoder-explained.vercel.app),
 [LLM Inference Explained](https://llm-inference-explained.vercel.app),
 [LLM Architectures Explained](https://llm-architectures-explained.vercel.app),
 [GPU Kernels Explained](https://gpu-kernels-explained.vercel.app),
