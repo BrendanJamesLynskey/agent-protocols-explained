@@ -110,9 +110,11 @@ for (const f of FILES) {
         const [all, repo, anchor] = m;
         if (/^LLM_Hub_/.test(repo!)) expect(anchor, all).toBe("");
         else if (repo === "MCP_04_Security_and_OAuth")
-          // the root, or one of its slides (#slide-00 … #slide-09, checked 2026-10-08)
-          expect(anchor, all).toMatch(/^(#slide-0\d)?$/);
-        else expect(anchor, all).toMatch(/^#(slide-\d\d|\/\d+|[a-z-]+)$/);
+          // the root, or one of its slides (#slide-00 … #slide-09, plus the 2026-07-28
+          // slides with a letter suffix such as #slide-03b; checked 2026-10-08)
+          expect(anchor, all).toMatch(/^(#slide-0\d[a-z]?)?$/);
+        // #slide-NN, or a suffixed 2026-07-28 slide (#slide-06b), a Reveal index or a named anchor
+        else expect(anchor, all).toMatch(/^#(slide-\d\d[a-z]?|\/\d+|[a-z-]+)$/);
       }
     });
 
