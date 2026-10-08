@@ -342,7 +342,7 @@ function Negotiation({
       : "ring-1 ring-neutral-200 dark:ring-neutral-800";
   return (
     <div
-      className={`mt-3 grid gap-2 text-xs sm:grid-cols-2 ${settled ? "" : "opacity-60"}`}
+      className={`mt-3 grid gap-2 text-xs sm:grid-cols-2`}
       data-testid="negotiation"
       data-settled={settled ? "true" : "false"}
     >

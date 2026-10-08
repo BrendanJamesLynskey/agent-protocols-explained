@@ -106,18 +106,20 @@ export default function TransportWidget({
               key={i}
               data-row={i}
               data-active={on ? "true" : "false"}
-              className={`grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] items-center gap-2 rounded px-1 text-[0.7rem] sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] ${seen ? "" : "opacity-30"}`}
+              className={`grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] items-center gap-2 rounded px-1 text-[0.7rem] sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]`}
               style={
                 on
                   ? { boxShadow: `0 0 0 2px ${STATE_COLOUR.active}` }
                   : undefined
               }
             >
-              <span className="truncate font-mono text-neutral-800 dark:text-neutral-200">
+              <span
+                className={`truncate font-mono ${seen ? "text-neutral-800 dark:text-neutral-200" : "text-neutral-500 dark:text-neutral-400"}`}
+              >
                 {x.dir === "c2s" ? "→ " : "← "}
                 {label(i)}
               </span>
-              <span className="flex h-3 min-w-0">
+              <span className={`flex h-3 min-w-0 ${seen ? "" : "opacity-30"}`}>
                 <span
                   style={{ width: `${wp}%`, background: BYTES_COLOUR.payload }}
                 />
