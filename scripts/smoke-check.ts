@@ -33,6 +33,7 @@ const SWITCH = [
   'data-site-switch="full"',
   'data-site-switch="compact"',
   'href="https://agent-harnesses-explained.vercel.app"',
+  'href="https://agent-protocols-explained.vercel.app"',
   "Protocols",
   'href="https://gpu-kernels-explained.vercel.app"',
 ];
