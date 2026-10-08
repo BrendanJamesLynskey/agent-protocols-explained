@@ -1,0 +1,136 @@
+/**
+ * Frame tests (visual standard §4). Everything a chapter animates is recomputed by the vendored
+ * TS engine and must equal the Python reference's (tests/fixtures/site_fixtures.json, written by
+ * scripts/make_fixtures.py from the reference at the vendored commit): every session's wire
+ * messages, log, sequence-chart frames, negotiation and framing, and every chapter view. The
+ * caption the page shows for a frame, built from the reference's frame, must equal the caption
+ * built from the TS frame, on every frame.
+ */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import {
+  CHAPTER_CONFIGS,
+  proto,
+  runChapter,
+  type Chapter,
+  type Obj,
+} from "@/lib/engine";
+import { nodeTokenizer } from "@/lib/engine/node";
+import {
+  dropCaption,
+  integrationCaption,
+  journeyCaption,
+  sequenceCaption,
+  transportCaption,
+} from "@/lib/proto/captions";
+
+const fx = JSON.parse(
+  readFileSync(join(__dirname, "../fixtures/site_fixtures.json"), "utf8"),
+) as Obj;
+const tok = nodeTokenizer();
+const label = (s: Obj, i: number) =>
+  (s.sequence as Obj[]).find((x) => !x.virtual && x.wire === i)?.label ?? "";
+
+describe("fixtures", () => {
+  it("cover every chapter", () => {
+    expect(Object.keys(fx.chapters).sort()).toEqual(
+      Object.keys(CHAPTER_CONFIGS).sort(),
+    );
+  });
+});
+
+for (const chapter of Object.keys(CHAPTER_CONFIGS) as Chapter[]) {
+  describe(chapter, () => {
+    const want = fx.chapters[chapter] as Obj;
+    const got = runChapter(chapter, tok);
+
+    for (const name of Object.keys(want.sessions)) {
+      it(`${name}: the session equals the reference`, () => {
+        expect(got.sessions[name]).toEqual(want.sessions[name]);
+      });
+      it(`${name}: captions from the reference's frames = from the port's`, () => {
+        const a = want.sessions[name] as Obj;
+        const b = got.sessions[name]!;
+        expect((a.sequence as Obj[]).map(sequenceCaption)).toEqual(
+          b.sequence.map(sequenceCaption),
+        );
+        for (const t of ["stdio", "http"] as const) {
+          if (!a[t]) continue;
+          const fa = a[t].frames as Obj[];
+          const fb = (b[t] as Obj).frames as Obj[];
+          expect(fa.map((f, i) => transportCaption(f, label(a, i)))).toEqual(
+            fb.map((f, i) => transportCaption(f, label(b, i))),
+          );
+        }
+      });
+    }
+
+    if (want.journeys)
+      it("journeys and their captions", () => {
+        expect(got.journeys).toEqual(want.journeys);
+        for (const [k, steps] of Object.entries(
+          want.journeys as Record<string, Obj[]>,
+        ))
+          expect(
+            steps.map((s, i) => journeyCaption(s, i, steps.length)),
+          ).toEqual(
+            got.journeys![k]!.map((s, i) => journeyCaption(s, i, steps.length)),
+          );
+      });
+
+    if (want.integration)
+      it("integration frames and captions", () => {
+        for (const f of want.integration as Obj[]) {
+          const mine = proto.integrationFrames(f.n, f.m);
+          expect(mine).toEqual(f);
+          expect(
+            (f.frames as Obj[]).map((x) => integrationCaption(x, f.n, f.m)),
+          ).toEqual(
+            (mine.frames as Obj[]).map((x) => integrationCaption(x, f.n, f.m)),
+          );
+        }
+      });
+
+    if (want.threeWays)
+      it("three ways (Qwen2.5 tokens)", () => {
+        expect(got.threeWays).toEqual(want.threeWays);
+      });
+
+    if (want.drops)
+      it("every broken stream, and its captions", () => {
+        expect(got.drops).toEqual(want.drops);
+        for (const [k, d] of Object.entries(want.drops as Record<string, Obj>))
+          expect((d.steps as Obj[]).map(dropCaption)).toEqual(
+            (got.drops![k]!.steps as Obj[]).map(dropCaption),
+          );
+      });
+  });
+}
+
+describe("key frames say what the model says", () => {
+  it("the handshake's third message is notifications/initialized", () => {
+    const s = fx.chapters.lifecycle.sessions.legacy_tour as Obj;
+    expect(sequenceCaption(s.sequence[2])).toBe(
+      "MCP client → MCP server: notifications/initialized (notification, 54 bytes).",
+    );
+  });
+  it("2026-07-28 elicitation: input_required, then the user, then a retry", () => {
+    const seq = fx.chapters.reverse.sessions.modern_elicit_accept
+      .sequence as Obj[];
+    expect(seq.map((f) => f.label).slice(0, 5)).toEqual([
+      'tools/call delete_file {"path":"build/"}',
+      "input_required: elicitation/create",
+      "show the form, wait for the user",
+      "accept",
+      'tools/call delete_file {"path":"build/"} + answers',
+    ]);
+  });
+  it("a resumed stream replays what it missed; a re-sent one redoes the work", () => {
+    const d = fx.chapters.transports.drops as Obj;
+    expect(d["handshake-5-2"].totals.replayed_events).toBe(4);
+    expect(d["modern-5-2"].totals.redone_steps).toBe(2);
+  });
+});

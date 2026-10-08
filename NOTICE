@@ -1,0 +1,14 @@
+Agent Protocols Explained is released under the MIT licence (LICENSE).
+
+It vendors Agent_Loop_Sim (MIT, https://github.com/BrendanJamesLynskey/Agent_Loop_Sim) in
+src/lib/engine/vendor/, src/data/ and public/tokenizer/, at the commit recorded in
+src/lib/engine/vendor/VENDORED.json. That includes:
+
+public/tokenizer/qwen2.5-merges.txt
+  The BPE merges of the Qwen2.5 tokenizer (Qwen/Qwen2.5-1.5B-Instruct on Hugging Face),
+  unchanged. Apache License 2.0; a copy is in public/tokenizer/QWEN2.5-LICENSE.
+
+src/data/sdk_exchanges.json
+  JSON-RPC messages recorded from the official MCP Python SDK (mcp 2.3.0, MIT,
+  https://github.com/modelcontextprotocol/python-sdk) talking to Agent_Loop_Sim's
+  conformance/sdk_server.py (copied here as src/data/sdk_server.py.txt).

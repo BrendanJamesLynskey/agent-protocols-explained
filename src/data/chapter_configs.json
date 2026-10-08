@@ -1,0 +1,51 @@
+{
+  "why": {
+    "scenarios": ["legacy_tour", "modern_tour"],
+    "integration": [
+      [1, 1],
+      [3, 4],
+      [5, 6],
+      [8, 10]
+    ]
+  },
+  "lifecycle": {
+    "scenarios": [
+      "legacy_tour",
+      "auto_tour",
+      "modern_tour",
+      "legacy_progress",
+      "raw_handshake",
+      "raw_old_version",
+      "raw_errors",
+      "legacy_errors",
+      "legacy_paged",
+      "legacy_cancel",
+      "legacy_list_changed"
+    ]
+  },
+  "primitives": {
+    "scenarios": ["legacy_three_ways", "modern_three_ways"],
+    "tokens": true
+  },
+  "transports": {
+    "scenarios": [
+      "legacy_tour",
+      "modern_tour",
+      "legacy_progress",
+      "modern_progress",
+      "legacy_elicit_accept",
+      "modern_elicit_accept"
+    ],
+    "drops": { "n": [3, 4, 5, 6, 7, 8] }
+  },
+  "reverse": {
+    "scenarios": [
+      "legacy_elicit_accept",
+      "legacy_elicit_decline",
+      "modern_elicit_accept",
+      "modern_elicit_decline",
+      "legacy_sampling",
+      "modern_sampling"
+    ]
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "repository": "https://github.com/BrendanJamesLynskey/Agent_Loop_Sim",
+  "commit": "3c7daf258ca4fbed018fbb0300fd56ff60b6bb5e",
+  "committed": "2026-10-08T10:04:19+01:00",
+  "files": {
+    "src/lib/engine/vendor/accounting.ts": {
+      "from": "ts/src/accounting.ts",
+      "sha256": "8c9718072f4256292d8636c0d5dd6e7183361dda5b79d714257eb3a13e321a02"
+    },
+    "src/lib/engine/vendor/chat.ts": {
+      "from": "ts/src/chat.ts",
+      "sha256": "be6b7d5f4b63d80d431f08714c11d62470d9f42a23c599bec032e224f801ee3e"
+    },
+    "src/lib/engine/vendor/data.ts": {
+      "from": "ts/src/data.ts",
+      "sha256": "65f43d25809dc3c7538b79021af154245b2c2e00a88ecda3b775423436cb75b4"
+    },
+    "src/lib/engine/vendor/engine_data.json": {
+      "from": "ts/src/engine_data.json",
+      "sha256": "86cbf65edff153e71f79ec9e34354103574df6dd2cfae0c2dda2f049d729a4dd"
+    },
+    "src/lib/engine/vendor/harness.ts": {
+      "from": "ts/src/harness.ts",
+      "sha256": "688c4d2b3c7ba8826583201b87467984464d96ffc2c639a22c1ba5f9d3b6611f"
+    },
+    "src/lib/engine/vendor/index.ts": {
+      "from": "ts/src/index.ts",
+      "sha256": "cf0b3d3424eae1e60cb30913ef6f939f790f48a3d5081707d3060705ff9635cd"
+    },
+    "src/lib/engine/vendor/jsonfmt.ts": {
+      "from": "ts/src/jsonfmt.ts",
+      "sha256": "fe97aeb52425d7835e1495beeff899443c5f3812561372053f44fe410e80ccb5"
+    },
+    "src/lib/engine/vendor/models.ts": {
+      "from": "ts/src/models.ts",
+      "sha256": "8ef1efda555e6242e11db91dbaa55e8cef0c5476090527b6f048ec2f2b762424"
+    },
+    "src/lib/engine/vendor/parse.ts": {
+      "from": "ts/src/parse.ts",
+      "sha256": "6546ea75ff849381c1af7b11fdb45663146909f1f7703829224f27dd95d32f97"
+    },
+    "src/lib/engine/vendor/protocols/index.ts": {
+      "from": "ts/src/protocols/index.ts",
+      "sha256": "42d5ffade7a11d5cd2e2aee6f9e53ceccf6d52bdf31cb1f51ab868d54e890410"
+    },
+    "src/lib/engine/vendor/protocols/mcp.ts": {
+      "from": "ts/src/protocols/mcp.ts",
+      "sha256": "7c355aad890950ad04654fa8f34979ae14478b8eb2156be3fa9938b2d1a4617f"
+    },
+    "src/lib/engine/vendor/protocols/oauth.ts": {
+      "from": "ts/src/protocols/oauth.ts",
+      "sha256": "ae02ca3307d7b88b852afb2c5c77fed36e0838418c204573954f2f2cf102fa3b"
+    },
+    "src/lib/engine/vendor/protocols/scenarios.ts": {
+      "from": "ts/src/protocols/scenarios.ts",
+      "sha256": "37e48f5e1a219b2b3076496e0fcee8df9e52ff77cff7340f7cec8f8a5695ac67"
+    },
+    "src/lib/engine/vendor/protocols/sha256.ts": {
+      "from": "ts/src/protocols/sha256.ts",
+      "sha256": "12be25b3e8b49f9dd420b0b0c20b5b31a90aabf2dad2fdef7d4abec550fe6395"
+    },
+    "src/lib/engine/vendor/protocols/transport.ts": {
+      "from": "ts/src/protocols/transport.ts",
+      "sha256": "f90034084e726abb2a2df52b48481d35a19c349378becd4b89dc6075aa34aa42"
+    },
+    "src/lib/engine/vendor/protocols/views.ts": {
+      "from": "ts/src/protocols/views.ts",
+      "sha256": "36c8a8438beb146bc0eeea9c54d3e780fff1e45725b5b729c3e9021ab17ccf61"
+    },
+    "src/lib/engine/vendor/protocols_data.json": {
+      "from": "ts/src/protocols_data.json",
+      "sha256": "e7522161bc52435d89d25a7eb582994f5f08a96fcd7b26d8965e0ed20a0dac81"
+    },
+    "src/lib/engine/vendor/rng.ts": {
+      "from": "ts/src/rng.ts",
+      "sha256": "7a31f5f304c80f66d5b58b95213a8e32ed0d3a8da6062b0d9702ad3a9977d296"
+    },
+    "src/lib/engine/vendor/sweeps.ts": {
+      "from": "ts/src/sweeps.ts",
+      "sha256": "da0635dab64bca38987bd063f37eae91c94be0133bb8fa4b94ab40b67d9bbcdb"
+    },
+    "src/lib/engine/vendor/tokenizer.ts": {
+      "from": "ts/src/tokenizer.ts",
+      "sha256": "60a2043320c29854dffb85de342fe608bde3d564d50486ed82a08463c7844484"
+    },
+    "src/lib/engine/vendor/tools.ts": {
+      "from": "ts/src/tools.ts",
+      "sha256": "1d42f1c15508f67595c3da2c1ea8261b7d2a4acf3fa5419c877aebcd883324ec"
+    },
+    "src/lib/engine/vendor/views.ts": {
+      "from": "ts/src/views.ts",
+      "sha256": "0d1be7ee567f3d17b20bf75b854246ba4a46857b0143401262f4f9097491f798"
+    },
+    "public/tokenizer/qwen2.5-merges.txt": {
+      "from": "src/agent_loop_sim/data/qwen2.5-merges.txt",
+      "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+    },
+    "public/tokenizer/QWEN2.5-LICENSE": {
+      "from": "src/agent_loop_sim/data/QWEN2.5-LICENSE",
+      "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e"
+    },
+    "src/data/sdk_exchanges.json": {
+      "from": "fixtures/sdk_exchanges.json",
+      "sha256": "0388ab0812c464efbf2f8f3bc878be5b74e0d18e50ad077cefdfb3ca3469f718"
+    },
+    "src/data/sdk_server.py.txt": {
+      "from": "conformance/sdk_server.py",
+      "sha256": "9428f7e86451963b082947f3a46fd85c620732d603979d4eea2c4771c91ce31d"
+    },
+    "tests/fixtures/protocols_fixtures.json": {
+      "from": "fixtures/protocols_fixtures.json",
+      "sha256": "5a456b1a2bd626819436718d4e493a9c46915bd0d6eaf5080a9385f1064da3ce"
+    }
+  }
+}

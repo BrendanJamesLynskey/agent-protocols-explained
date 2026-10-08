@@ -1,0 +1,105 @@
+<SequenceWidget variant="lifecycle">
+  <Eq
+    label="In 2026-07-28 the version used is the newest one in both the client's set and the server's set"
+    tex="\begin{gathered} v^{*} = \max\big(\htmlClass{hl-client}{V_c} \cap \htmlClass{hl-server}{V_s}\big) \\ \htmlClass{hl-agreed}{v_{\text{handshake}}} = \begin{cases} p & p \in V_s \\ \max V_s & \text{otherwise} \end{cases} \end{gathered}"
+  />
+</SequenceWidget>
+
+<Layer kind="concept">
+
+Every MCP message is a **JSON-RPC 2.0** message ([JSON-RPC 2.0](https://www.jsonrpc.org/specification)): a **request** has a `method`, `params` and an `id`, and must be answered by a **result** or an **error** carrying the same `id`; a **notification** has no `id` and gets no answer. That is the whole wire alphabet. Pick a session in the animation and step through it: every arrow is one of those four kinds, and the JSON under the chart is the message exactly as sent.
+
+**The handshake era (2024-11-05 to 2025-11-25).** A session starts with three messages. The client sends `initialize` with the version it wants, its capabilities and its name; the server answers with the version it will speak and its own capabilities; the client confirms with `notifications/initialized` ([lifecycle, 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle), accessed 2026-10-08). After that, requests carry no envelope: the connection remembers what was agreed. In the first session that is <V of="lifecycle.legacy_tour.messages" fmt="int" /> messages for a handshake, a ping, and one use of each primitive.
+
+**The stateless revision (2026-07-28).** The current revision removed the handshake, protocol-level sessions and `ping` ([changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog), accessed 2026-10-08). Instead every request carries its protocol version, the client's identity and its capabilities in `params._meta`, and every result says `resultType` and names the server. A client that wants to choose a version up front calls `server/discover` first. The price is bytes: here the envelope adds <V of="lifecycle.meta_bytes" fmt="num" /> bytes to every request on average. The gain is that any request can go to any server instance, with nothing to remember between them.
+
+**Negotiation.** In the handshake era the client proposes a version $p$; the server replies with $p$ if it speaks it, or with the newest version it does speak, and the client must disconnect if it cannot use that. Try **An old client (2024-11-05)**: the server agrees to the old version. Try **Out of order, unknown version**: a client asking for `1999-01-01` gets `2025-11-25` back. In 2026-07-28, `server/discover` returns the server's versions and the client takes the newest one both sides speak; a request with a version the server does not speak gets error `-32022` listing the ones it does. Capabilities work the same way in both eras: a feature is usable only if the side that provides it declared it (the server for tools, resources and prompts; the client for elicitation and sampling).
+
+**Errors.** Two kinds, and the difference matters to an agent. A **protocol error** is a JSON-RPC `error`: the method does not exist (`-32601`), the parameters are wrong (`-32602`), the version is not supported (`-32022`). A **tool error** is a normal result with `isError: true` and text the model can read and react to. Try **Tool errors vs protocol errors**: a tool that fails, and an unknown tool, come back as results; an unknown resource is a protocol error. The specification asks for input-validation failures to be tool errors so the model can correct itself ([tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools), accessed 2026-10-08).
+
+</Layer>
+
+<Callout kind="illustrative">
+
+Sessions marked **engine only** are not in the SDK recordings: the SDK's high-level server does not paginate, and cancellation depends on timing a recording cannot pin down, so these follow the specification's rules ([pagination](https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/pagination), [cancellation](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/cancellation), accessed 2026-10-08). The list-change notification is shown in its handshake-era form; 2026-07-28 delivers it on a `subscriptions/listen` stream instead. Every other session is the SDK's exchange, message for message. Some behaviour is the SDK's, not the specification's: its stdio server sends nothing back for a line that is not JSON (JSON-RPC 2.0 would answer `-32700`), and a connection is locked to the era of its first valid request.
+
+</Callout>
+
+<Layer kind="maths">
+
+Let $V_c$ and $V_s$ be the sets of revisions the client and the server speak. In 2026-07-28 the client picks
+
+$$
+v^{*} = \max(V_c \cap V_s),
+$$
+
+with dates compared as strings (they sort as dates). If $V_c \cap V_s = \varnothing$ there is no common version and the client reports an error. In the handshake era the client proposes one $p$, and the server answers $p$ if $p \in V_s$, otherwise $\max V_s$; the client then needs that answer to be in $V_c$. Here the official SDK's client speaks all five revisions, while the fixture server speaks the four handshake-era ones on a handshake connection and only 2026-07-28 on a stateless one.
+
+The cost of statelessness is linear in the number of requests $r$: with an envelope of $e$ bytes, a session sends $r\,e$ more bytes than its handshake-era equivalent, and saves the three handshake messages.
+
+</Layer>
+
+<Layer kind="code">
+
+The server's state machine decides the era from the first valid request, cut from the vendored engine (the same branching the SDK's recordings show):
+
+```ts
+if (method === "initialize") {
+  this.era = "handshake";
+  const asked = params.protocolVersion;
+  this.version = HANDSHAKE_VERSIONS.includes(asked) ? asked : LATEST_HANDSHAKE;
+```
+
+The handshake-era opening request, as the engine and the SDK send it:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2025-11-25",
+    "capabilities": {},
+    "clientInfo": { "name": "fixture-client", "version": "1.0.0" }
+  }
+}
+```
+
+The first request of a 2026-07-28 session, with no handshake before it:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientInfo": { "name": "fixture-client", "version": "1.0.0" },
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  }
+}
+```
+
+</Layer>
+
+## What changed, revision by revision
+
+| Revision   | What it brought (from each revision's changelog)                                                                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2024-11-05 | The first release: JSON-RPC, stdio and HTTP+SSE, tools, resources, prompts, sampling                                                                                               |
+| 2025-03-26 | Streamable HTTP replaces HTTP+SSE; OAuth 2.1 authorisation                                                                                                                         |
+| 2025-06-18 | Structured tool output, elicitation, the `MCP-Protocol-Version` header; JSON-RPC batching removed                                                                                  |
+| 2025-11-25 | URL-mode elicitation, tool calling in sampling, Client ID Metadata Documents, experimental tasks ([changelog](https://modelcontextprotocol.io/specification/2025-11-25/changelog)) |
+| 2026-07-28 | No handshake or sessions; `_meta` on every request; `server/discover`; `input_required` results replace server-to-client requests; no stream resumption                            |
+
+Sources: the specification's changelogs, accessed 2026-10-08 ([2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/changelog)). The rows for the first three revisions summarise the MCP series' timeline slide.
+
+<Callout kind="deeper">
+
+- MCP series: [JSON-RPC 2.0](https://brendanjameslynskey.github.io/MCP_01_Protocol_Overview/#slide-03), [Capability Negotiation](https://brendanjameslynskey.github.io/MCP_01_Protocol_Overview/#slide-05), [Lifecycle](https://brendanjameslynskey.github.io/MCP_01_Protocol_Overview/#slide-06) and [the annotated exchange](https://brendanjameslynskey.github.io/MCP_01_Protocol_Overview/#slide-08) (these describe the handshake era).
+- [Errors, Progress, Cancellation, Logging](https://brendanjameslynskey.github.io/MCP_03_Building_a_Server/#slide-07).
+- The [MCP hub](https://brendanjameslynskey.github.io/LLM_Hub_MCP/).
+
+</Callout>

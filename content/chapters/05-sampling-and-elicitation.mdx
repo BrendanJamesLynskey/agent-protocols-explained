@@ -1,0 +1,107 @@
+<SequenceWidget variant="reverse">
+  <Eq
+    label="A tool call that needs r answers costs two messages for the call plus two per answer, in both eras; what differs is whether anything waits in between"
+    tex="\begin{gathered} N_{\text{msgs}} = \htmlClass{hl-call}{2} + 2\,\htmlClass{hl-ask}{r} \\ \text{2025-11-25: } \htmlClass{hl-ask}{\text{server asks}} \to \htmlClass{hl-answer}{\text{client answers}} \\ \text{2026-07-28: } \htmlClass{hl-ask}{\texttt{input\_required}} \to \htmlClass{hl-retry}{\text{retry}} \end{gathered}"
+  />
+</SequenceWidget>
+
+<Layer kind="concept">
+
+Most traffic goes from client to server: list this, call that. Sometimes the server, half-way through a tool call, needs something only the client side has. **Elicitation** asks the **user** for a decision or a value ("Delete build/?"). **Sampling** asks the **client's model** to write something, so a server can use a language model without holding its own API key. Both run through the host, which owns the user interface and the model, and both are gates the host controls.
+
+**2025-11-25: the direction reverses.** The server sends its own JSON-RPC request to the client, `elicitation/create` or `sampling/createMessage`, with an `id` of its own (`s1` in the recordings), while the client's `tools/call` stays open. The host shows the form or asks the model, the client answers with a result for that `id`, and only then does the server finish the call. Step through **2025-11-25: elicitation, accept**: the arrows run right to left, and the client's request waits for <V of="params.work.human" fmt="ms" /> of (simulated) human thinking with the server holding its state.
+
+**2026-07-28: input_required and a retry.** Servers may no longer send requests to clients. Instead the call ends at once with `resultType: "input_required"` and the requests it needs in `inputRequests`; the host gathers the answers and sends the **same call again, with a new id**, carrying `inputResponses` ([changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog), accessed 2026-10-08; it calls the pattern multi round-trip requests). Nothing waits on the server between the rounds, which is what makes the revision stateless. Compare the two accept sessions: <V of="reverse.legacy_elicit_accept.messages" fmt="int" /> messages against <V of="reverse.modern_elicit_accept.messages" fmt="int" />, because the 2026-07-28 client does not need a handshake.
+
+**The gates.** The protocol does not say how the host asks, but it says what the host must allow. For elicitation, clients MUST "Provide UI that makes it clear which server is requesting information" and "provide clear decline and cancel options", and servers "MUST NOT use form mode elicitation to request sensitive information such as passwords, API keys, access tokens"; those go through URL mode, which sends the user to a page outside the client ([elicitation](https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation), accessed 2026-10-08). For sampling, "there SHOULD always be a human in the loop with the ability to deny sampling requests" ([sampling](https://modelcontextprotocol.io/specification/2026-07-28/client/sampling), accessed 2026-10-08). The dashed purple arrows in the chart are those gates: inside the host, not on the wire. Try the decline sessions: the server gets `"action": "decline"` and keeps the file.
+
+</Layer>
+
+<Callout kind="illustrative">
+
+The user's and the model's answers are **scripted** (accept, decline, a fixed summary), and their times are illustrative (<V of="params.work.human" fmt="ms" /> for the user, <V of="params.work.model" fmt="ms" /> for the model). The messages are the official SDK's: the recordings include all six sessions. Sampling is **deprecated** in 2026-07-28 (SEP-2577: servers are pointed at calling a model provider directly), as are roots and logging; it still works during the deprecation window.
+
+</Callout>
+
+<Layer kind="maths">
+
+A call that needs $r$ answers costs, in both eras,
+
+$$
+N_{\text{msgs}} = 2 + 2r
+$$
+
+messages: in 2025-11-25 a request and a result for the call plus a server request and a client result per answer; in 2026-07-28 one call and one `input_required` result per round plus the final call and result. The difference is in state and connections, not in count. In 2025-11-25 the server holds the call open for the whole human wait $t_h$, and over HTTP that is one open SSE stream per waiting call: $S = \lambda\,t_h$ open streams for calls arriving at rate $\lambda$ (Little's law). In 2026-07-28 that number is zero, and the retry can land on any server instance.
+
+</Layer>
+
+<Layer kind="code">
+
+The server's request to the client in 2025-11-25, as the engine and the SDK send it:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "elicitation/create",
+  "params": {
+    "mode": "form",
+    "message": "Delete build/?",
+    "requestedSchema": {
+      "type": "object",
+      "properties": { "confirm": { "type": "boolean" } },
+      "required": ["confirm"]
+    }
+  }
+}
+```
+
+The same need in 2026-07-28: a result, not a request:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "inputRequests": {
+      "confirm": {
+        "method": "elicitation/create",
+        "params": {
+          "mode": "form",
+          "message": "Delete build/?",
+          "requestedSchema": {
+            "type": "object",
+            "properties": { "confirm": { "type": "boolean" } },
+            "required": ["confirm"]
+          }
+        }
+      }
+    },
+    "resultType": "input_required",
+    "_meta": { "io.modelcontextprotocol/serverInfo": { "name": "fixture-server", "version": "1.0.0" } }
+  }
+}
+```
+
+The client's side of the retry, cut from the vendored engine:
+
+```ts
+while (r !== null && "result" in r && r.result.resultType === "input_required" && rounds < 8) {
+  rounds += 1;
+  client.state = "gathering input";
+  const answers: Obj = {};
+  for (const [key, ir] of Object.entries(r.result.inputRequests as Obj)) answers[key] = client.answer(ir as Obj);
+  const retry: Obj = { inputResponses: answers, ...base };
+  r = call("tools/call", retry, "the client retries with the answers");
+}
+```
+
+</Layer>
+
+<Callout kind="deeper">
+
+- MCP series: [Sampling](https://brendanjameslynskey.github.io/MCP_03_Building_a_Server/#slide-05) and [Elicitation](https://brendanjameslynskey.github.io/MCP_03_Building_a_Server/#slide-06) (the handshake era), and [agent servers built on sampling](https://brendanjameslynskey.github.io/MCP_05_Ecosystem_and_Patterns/#slide-06).
+- The human gate from the harness's side: [Agent Harnesses Explained, permissions](https://agent-harnesses-explained.vercel.app/learn/05-permissions).
+- [MCP Security & OAuth](https://brendanjameslynskey.github.io/MCP_04_Security_and_OAuth/) and the [Computer Use hub](https://brendanjameslynskey.github.io/LLM_Hub_Computer_Use/).
+
+</Callout>

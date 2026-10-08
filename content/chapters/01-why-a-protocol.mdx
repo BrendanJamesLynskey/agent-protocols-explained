@@ -1,0 +1,72 @@
+<IntegrationWidget>
+  <Eq
+    label="Point to point, the number of adapters is the number of agents times the number of tools; with a shared protocol it is the number of agents plus the number of tools"
+    tex="\begin{gathered} \htmlClass{hl-p2p}{A_{\text{p2p}}} = \htmlClass{hl-agents}{N}\cdot\htmlClass{hl-tools}{M} \\ \htmlClass{hl-proto}{A_{\text{MCP}}} = \htmlClass{hl-agents}{N} + \htmlClass{hl-tools}{M} \end{gathered}"
+  />
+</IntegrationWidget>
+
+<Layer kind="concept">
+
+An agent is only as useful as the tools it can reach: a file system, a database, a ticket tracker, a search index. Before a shared protocol, every agent application wrote its own connector for every tool it wanted, and every tool vendor wrote a plug-in for every agent it wanted to reach. With $N$ agents and $M$ tools that is $N \cdot M$ pieces of glue, each with its own way of describing a tool, calling it and reporting an error. Five agents and six tools need <V of="why.p2p.5x6" fmt="int" /> adapters.
+
+The **Model Context Protocol** (MCP) cuts that to $N + M$: each agent implements an MCP **client** once, each tool ships an MCP **server** once, and any client can talk to any server. The same five agents and six tools need <V of="why.protocol.5x6" fmt="int" /> implementations. Anthropic published MCP as an open protocol in November 2024 ([announcement](https://www.anthropic.com/news/model-context-protocol), accessed 2026-10-08); the specification is versioned by date, and the current revision is **<V of="spec.current" fmt="raw" />** ([versioning](https://modelcontextprotocol.io/specification/versioning), accessed <V of="spec.accessed" fmt="raw" />).
+
+The count is of things to **build**, not of connections at run time: a host that uses six servers still opens six connections. What the protocol removes is the per-pair glue.
+
+</Layer>
+
+<Callout kind="illustrative">
+
+The picture counts implementations, which is the argument the protocol was made for; real integrations differ in size. Everything below the hero, though, is a **simulated session that is checked against the official MCP Python SDK** (<V of="sdk.version" fmt="raw" />): in CI the SDK's own client and server run <V of="sdk.scenarios" fmt="int" /> scenarios over stdio and the simulator must send the same <V of="sdk.messages" fmt="int" /> messages, request IDs aside. The [conformance page](/conformance) has the recordings.
+
+</Callout>
+
+## One tool call, end to end
+
+The specification names three roles ([architecture](https://modelcontextprotocol.io/specification/2026-07-28/architecture), accessed 2026-10-08). The **host** is the application the user runs (a chat app, an IDE, a coding agent); it holds the model and decides what reaches it. Inside the host, one **client** per server keeps a 1:1 connection to that server. The **server** offers tools, resources and prompts. The model itself never speaks MCP: it writes a tool call in its own API's format, and the host turns it into a JSON-RPC request through the right client.
+
+<JourneyWidget />
+
+<Layer kind="concept">
+
+Follow the packet. The model asks for `add`; the host looks up which connected server offers a tool of that name (it learnt the list earlier with `tools/list`); that server's client sends a `tools/call` request; the server runs the tool and answers; the client hands the content back to the host, which adds it to the model's context as a tool result. Only the two middle legs are MCP. Switch the revision: in 2026-07-28 the request also carries the protocol version and the client's identity in `_meta`, and the result names the server and says `resultType: "complete"`, because there is no handshake any more to have settled those things once ([chapter 2](/learn/02-json-rpc-and-the-life-cycle)).
+
+In this session the 2025-11-25 exchange takes <V of="why.legacy_tour.messages" fmt="int" /> messages and <V of="why.legacy_tour.bytes" fmt="bytes" /> of JSON for a handshake, a ping and one use of each primitive; the 2026-07-28 one takes <V of="why.modern_tour.messages" fmt="int" /> messages but <V of="why.modern_tour.bytes" fmt="bytes" />, since every request repeats its envelope.
+
+</Layer>
+
+<Layer kind="maths">
+
+With $N$ agents and $M$ tools, point-to-point integration needs one adapter per pair and a protocol needs one implementation per party:
+
+$$
+A_{\text{p2p}} = N M, \qquad A_{\text{MCP}} = N + M, \qquad \frac{A_{\text{p2p}}}{A_{\text{MCP}}} = \frac{NM}{N+M}.
+$$
+
+For $N = M$ the saving is $N/2$: it grows with the size of the ecosystem, which is why a shared protocol pays off more the more agents and tools there are. For $N = 1$ there is nothing to save ($M$ adapters either way): one agent and its own tools do not need a protocol.
+
+</Layer>
+
+<Layer kind="code">
+
+The server's side of the call above, cut from the vendored engine ([`src/lib/engine/vendor/protocols/mcp.ts`](https://github.com/BrendanJamesLynskey/agent-protocols-explained/blob/main/src/lib/engine/vendor/protocols/mcp.ts); its Python reference in [Agent_Loop_Sim](https://github.com/BrendanJamesLynskey/Agent_Loop_Sim) produces the same messages, which equal the SDK's). An unknown tool comes back as a result the model can read, as the SDK does it (the specification's own example treats an unknown tool as a `-32602` protocol error; [tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools), accessed 2026-10-08):
+
+```ts
+const names = (this.spec.tools as Obj[]).map((t) => t.name);
+if (!names.includes(name)) return [response(id, this.toolResult("Unknown tool: " + String(name), false, true))];
+if (name === "add") {
+  const v = args.a + args.b;
+  const r: Obj = { content: textContent(String(v)), isError: false, structuredContent: { result: v } };
+  return [response(id, this.modern(r, false))];
+}
+```
+
+</Layer>
+
+<Callout kind="deeper">
+
+- MCP series: [The M×N Problem](https://brendanjameslynskey.github.io/MCP_01_Protocol_Overview/#slide-01) and [Host / Client / Server](https://brendanjameslynskey.github.io/MCP_01_Protocol_Overview/#slide-02), and the [MCP hub](https://brendanjameslynskey.github.io/LLM_Hub_MCP/).
+- [Agents hub](https://brendanjameslynskey.github.io/LLM_Hub_Agents/) and [Papers: Agents and Tools](https://brendanjameslynskey.github.io/Papers_06_Agents_and_Tools/#slide-01).
+- The companion site [Agent Harnesses Explained](https://agent-harnesses-explained.vercel.app/learn/02-tool-calling): what the model writes when it calls a tool, before the host turns it into MCP.
+
+</Callout>

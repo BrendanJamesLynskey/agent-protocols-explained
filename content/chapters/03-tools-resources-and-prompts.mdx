@@ -1,0 +1,67 @@
+<ThreeWaysWidget>
+  <Eq
+    label="The bytes a session spends are the sum over its three paths: the tool path, the resource path and the prompt path"
+    tex="\begin{gathered} B = \htmlClass{hl-tool}{B_{\text{tool}}} + \htmlClass{hl-resource}{B_{\text{resource}}} + \htmlClass{hl-prompt}{B_{\text{prompt}}} \\ B_{p} = \sum_{m \in p} |m| \end{gathered}"
+  />
+</ThreeWaysWidget>
+
+<Layer kind="concept">
+
+A server offers three kinds of thing, and the specification tells them apart by **who decides to use them** ([server overview](https://modelcontextprotocol.io/specification/2026-07-28/server/index), accessed 2026-10-08):
+
+| Primitive     | Controlled by   | What it is                                            | Example                      |
+| ------------- | --------------- | ----------------------------------------------------- | ---------------------------- |
+| **Tools**     | the model       | functions the model may call to act or look things up | run a query, write a file    |
+| **Resources** | the application | data the host attaches to the context                 | a file's contents, a git log |
+| **Prompts**   | the user        | templates the user picks, often as slash commands     | "/review this code"          |
+
+The animation gets the same README in front of the model three ways in one session. **As a tool**: the host lists the tools and gives their definitions to the model, which decides to call `read_doc`; the result comes back as a tool result. **As a resource**: the host lists the resources and reads `docs://readme` itself, because the application (or the user through it) chose to attach it; the model never asked. **As a prompt**: the user picks the `review` prompt and fills in its argument; the server returns ready-made messages that start the conversation.
+
+Each path is a list and then a get, four messages. They cost very different amounts. The tool path is the biggest, <V of="primitives.legacy.tool.bytes" fmt="bytes" /> here, because `tools/list` returns every tool's JSON Schema, and those definitions also go into the model's prompt on every turn. The resource path costs <V of="primitives.legacy.resource.bytes" fmt="bytes" /> and the prompt path <V of="primitives.legacy.prompt.bytes" fmt="bytes" />. What reaches the model is small in all three: <V of="primitives.legacy.tool.tokens" fmt="int" /> tokens of README by the tool or the resource, <V of="primitives.legacy.prompt.tokens" fmt="int" /> wrapped in the prompt's template (Qwen2.5 tokenizer). In 2026-07-28 every message carries its envelope, so the same three paths cost <V of="primitives.modern.tool.bytes" fmt="bytes" />, <V of="primitives.modern.resource.bytes" fmt="bytes" /> and <V of="primitives.modern.prompt.bytes" fmt="bytes" />.
+
+Which to use is a question of control. A tool hands the decision to the model, which is right for actions and for lookups the model must plan; it also exposes the tool to whatever text the model reads, which is why tool permissions exist. A resource keeps the decision with the application: nothing reaches the context unless the host puts it there. A prompt keeps it with the user.
+
+</Layer>
+
+<Callout kind="illustrative">
+
+The server is the small fixture server the conformance recordings use (written with the official SDK); the README is two lines, so the content is tiny next to the protocol around it. Real tool lists are far longer: every tool definition is re-sent to the model on every turn, which [Agent Harnesses Explained](https://agent-harnesses-explained.vercel.app/learn/03-the-context-budget) counts in tokens.
+
+</Callout>
+
+<Layer kind="maths">
+
+For a path $p$ (its list and its get), the bytes on the wire are $B_p = \sum_{m \in p} |m|$ over its messages $m$. What matters for the model is different: the tokens $T$ that land in its context. A tool adds its definition $d$ to **every** model call, so over $n$ turns the tool path costs
+
+$$
+T_{\text{tool}} \approx n\,T(d) + T(\text{result}),
+$$
+
+while a resource or a prompt adds only its content, once: $T_{\text{resource}} = T(\text{content})$. That is the trade the specification's control column hides: a model-controlled primitive is also a per-turn cost.
+
+</Layer>
+
+<Layer kind="code">
+
+The three gets on the server side, cut from the vendored engine. Listing is the same code for all three primitives (with pagination when the server pages):
+
+```ts
+if (method === "tools/list") return [response(id, this.list("tools", params))];
+if (method === "resources/list") return [response(id, this.list("resources", params))];
+if (method === "prompts/list") return [response(id, this.list("prompts", params))];
+if (method === "resources/read") {
+  const uri = params.uri;
+  if (!(uri in this.spec.texts)) {
+    return [error(id, ERRORS.invalid_params!, "Unknown resource: " + String(uri), { uri }, true)];
+  }
+```
+
+</Layer>
+
+<Callout kind="deeper">
+
+- MCP series: [The Five Primitives](https://brendanjameslynskey.github.io/MCP_01_Protocol_Overview/#slide-04); building them: [Tools](https://brendanjameslynskey.github.io/MCP_03_Building_a_Server/#slide-02), [Resources](https://brendanjameslynskey.github.io/MCP_03_Building_a_Server/#slide-03), [Prompts](https://brendanjameslynskey.github.io/MCP_03_Building_a_Server/#slide-04).
+- Server design patterns: [data servers](https://brendanjameslynskey.github.io/MCP_05_Ecosystem_and_Patterns/#slide-04) and [tool servers](https://brendanjameslynskey.github.io/MCP_05_Ecosystem_and_Patterns/#slide-05).
+- [RAG hub](https://brendanjameslynskey.github.io/LLM_Hub_RAG_Retrieval/): resources are one way retrieved text reaches the model.
+
+</Callout>
