@@ -33,6 +33,16 @@ export const ACTOR_COLOUR: Record<string, string> = {
   as: OKABE_ITO.yellow,
   mcp: OKABE_ITO.green,
   network: OKABE_ITO.vermillion,
+  // chapters 6-9: OAuth, gateways, attacks (servers are green, attackers vermillion)
+  upstream: OKABE_ITO.green,
+  gateway: OKABE_ITO.sky,
+  files: OKABE_ITO.green,
+  github: OKABE_ITO.green,
+  web: OKABE_ITO.green,
+  calendar: OKABE_ITO.green,
+  notes: OKABE_ITO.green,
+  proxy: OKABE_ITO.green,
+  attacker: OKABE_ITO.vermillion,
 };
 
 export const ACTOR_NAME: Record<string, string> = {
@@ -42,6 +52,41 @@ export const ACTOR_NAME: Record<string, string> = {
   server: "MCP server",
   user: "User",
   network: "Network",
+  browser: "Browser",
+  as: "Auth server",
+  mcp: "MCP server",
+  upstream: "Upstream API",
+  gateway: "Gateway",
+  files: "files",
+  github: "github",
+  web: "web",
+  calendar: "calendar",
+  notes: "Notes server",
+  proxy: "MCP proxy",
+  attacker: "Attacker",
+};
+
+/** Short names for a crowded chart on a phone. */
+export const ACTOR_SHORT: Record<string, string> = {
+  user: "User",
+  model: "Model",
+  client: "Client",
+  server: "Server",
+  mcp: "Server",
+  as: "AS",
+  browser: "Browser",
+  upstream: "API",
+  notes: "Notes",
+  files: "Files",
+  proxy: "Proxy",
+  attacker: "Attacker",
+};
+
+/** In an A2A chart the client and server are two agents. */
+export const A2A_NAMES: Record<string, string> = {
+  client: "Orchestrator",
+  server: "Research agent",
+  user: "User",
 };
 
 /** Message kinds: requests solid, notifications dashed, errors in the warning hue (and a cross). */
@@ -52,6 +97,9 @@ export const MESSAGE_COLOUR: Record<string, string> = {
   error: OKABE_ITO.vermillion,
   malformed: OKABE_ITO.vermillion,
   gate: OKABE_ITO.purple,
+  check: OKABE_ITO.green,
+  fail: OKABE_ITO.vermillion,
+  attack: OKABE_ITO.vermillion,
 };
 
 /** Bytes: the JSON-RPC payload and the transport's framing around it. */

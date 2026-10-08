@@ -26,7 +26,7 @@ describe("vendored engine", () => {
       ).toBe(rec.sha256);
   });
 
-  it("vendors the TS port with its protocols module, the tokenizer and the SDK recordings", () => {
+  it("vendors the TS port with its protocols module, the tokenizer and both SDKs' recordings", () => {
     const froms = Object.values(VENDORED.files).map((f) => f.from);
     for (const f of [
       "ts/src/protocols/mcp.ts",
@@ -39,6 +39,12 @@ describe("vendored engine", () => {
       "fixtures/sdk_exchanges.json",
       "fixtures/protocols_fixtures.json",
       "conformance/sdk_server.py",
+      "ts/src/protocols/a2a.ts",
+      "ts/src/protocols/gateway.ts",
+      "ts/src/protocols/security.ts",
+      "fixtures/a2a_sdk_exchanges.json",
+      "fixtures/protocols2_fixtures.json",
+      "conformance/a2a_sdk_server.py",
     ])
       expect(froms).toContain(f);
   });
@@ -51,11 +57,42 @@ describe("vendored engine", () => {
         "utf8",
       ),
     ) as { engine: string; plays: { name: string; wire: unknown }[] };
-    expect(fx.engine).toBe("1.2.0");
+    expect(fx.engine).toBe("1.3.0");
     for (const p of fx.plays)
       expect(proto.play(proto.protocolScenario(p.name)).wire, p.name).toEqual(
         p.wire,
       );
+    // engine 1.3.0's own fixtures: A2A, the gateway's messages, the attacks
+    const fx2 = JSON.parse(
+      readFileSync(
+        join(ROOT, "tests/fixtures/protocols2_fixtures.json"),
+        "utf8",
+      ),
+    ) as {
+      engine: string;
+      a2a: { name: string; wire: unknown }[];
+      security: { attack: string; defended: boolean; steps: unknown }[];
+    };
+    expect(fx2.engine).toBe("1.3.0");
+    for (const a of fx2.a2a)
+      expect(
+        proto.a2a.play(proto.a2a.a2aScenario(a.name)).wire,
+        a.name,
+      ).toEqual(a.wire);
+    for (const r of fx2.security)
+      expect(proto.runSecurity(r.attack, r.defended).steps).toEqual(r.steps);
+  });
+
+  it("the A2A SDK's recordings are reproduced by the vendored port", async () => {
+    const { proto } = await import("@/lib/engine");
+    const sdk = JSON.parse(
+      readFileSync(join(ROOT, "src/data/a2a_sdk_exchanges.json"), "utf8"),
+    ) as { scenarios: Record<string, unknown> };
+    for (const [n, want] of Object.entries(sdk.scenarios))
+      expect(
+        proto.a2a.normalise(proto.a2a.play(proto.a2a.a2aScenario(n)).wire),
+        n,
+      ).toEqual(want);
   });
 
   it("the site's fixtures come from the same commit", () => {

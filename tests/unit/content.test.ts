@@ -1,8 +1,8 @@
 /**
  * The chapters' MDX: each opens with its animation; every ```ts block is cut from the vendored
  * engine (whitespace-collapsed, because Prettier reformats MDX code blocks); every ```json
- * block is a message the engine sends in one of its sessions (and so the SDK, for the recorded
- * ones); every equation compiles in KaTeX; internal links point at real pages; deck links point
+ * block is a message the engine sends in one of its sessions (MCP, A2A or the gateway; and so
+ * the SDK, for the recorded ones); every equation compiles in KaTeX; internal links point at real pages; deck links point
  * at the owner's decks.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -12,6 +12,7 @@ import katex from "katex";
 import { describe, expect, it } from "vitest";
 
 import { proto, type Obj } from "@/lib/engine";
+import { nodeTokenizer } from "@/lib/engine/node";
 import { SECTIONS } from "@/lib/mdx/sections";
 
 const ROOT = path.join(__dirname, "../..");
@@ -31,12 +32,29 @@ const tsFiles = (dir: string): string[] =>
 const ENGINE = tsFiles(VENDOR)
   .map((f) => squash(readFileSync(f, "utf8")))
   .join("\n");
-const MESSAGES: Obj[] = [...proto.SCENARIOS, ...proto.ENGINE_SCENARIOS].flatMap(
-  (sc) =>
+const MESSAGES: Obj[] = [
+  ...[...proto.SCENARIOS, ...proto.ENGINE_SCENARIOS].flatMap((sc) =>
     (proto.play(sc).wire as Obj[])
       .filter((w) => "msg" in w)
       .map((w) => w.msg as Obj),
-);
+  ),
+  // A2A: every message, and the agent card, of every scenario
+  ...Object.keys(proto.a2a.A2A_SCENARIOS).flatMap((n) =>
+    (proto.a2a.play(proto.a2a.a2aScenario(n)).wire as Obj[]).flatMap((w) =>
+      "msg" in w
+        ? [w.msg as Obj]
+        : "http" in w && w.http.body
+          ? [w.http.body as Obj]
+          : [],
+    ),
+  ),
+  // the gateway's messages under every policy
+  ...proto.POLICIES.flatMap((p) =>
+    (proto.gatewayRun(p, nodeTokenizer()).wire as Obj[]).map(
+      (w) => w.msg as Obj,
+    ),
+  ),
+];
 const PAGES = ["/conformance", "/about", "/learn"];
 
 describe("chapter files", () => {
@@ -49,7 +67,7 @@ for (const f of FILES) {
   const src = readFileSync(path.join(DIR, f), "utf8");
   describe(f, () => {
     it("opens with its animation (the hero comes before any prose)", () => {
-      expect(src.trimStart()).toMatch(/^<[A-Z][a-zA-Z]+Widget[ >]/);
+      expect(src.trimStart()).toMatch(/^<[A-Z][a-zA-Z0-9]+Widget[ >]/);
     });
 
     it("cuts every TypeScript block from the vendored engine", () => {
@@ -90,8 +108,10 @@ for (const f of FILES) {
         /https:\/\/brendanjameslynskey\.github\.io\/([A-Za-z0-9_]+)\/([^)\s]*)/g,
       )) {
         const [all, repo, anchor] = m;
-        if (/^LLM_Hub_/.test(repo!) || repo === "MCP_04_Security_and_OAuth")
-          expect(anchor, all).toBe("");
+        if (/^LLM_Hub_/.test(repo!)) expect(anchor, all).toBe("");
+        else if (repo === "MCP_04_Security_and_OAuth")
+          // the root, or one of its slides (#slide-00 … #slide-09, checked 2026-10-08)
+          expect(anchor, all).toMatch(/^(#slide-0\d)?$/);
         else expect(anchor, all).toMatch(/^#(slide-\d\d|\/\d+|[a-z-]+)$/);
       }
     });

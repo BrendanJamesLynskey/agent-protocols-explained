@@ -218,6 +218,33 @@
 .eq-panel .hl-retry {
   border-color: #d55e00;
 }
+.eq-panel .hl-verifier {
+  border-color: #e69f00;
+}
+.eq-panel .hl-challenge {
+  border-color: #0072b2;
+}
+.eq-panel .hl-aud {
+  border-color: #009e73;
+}
+.eq-panel .hl-sum {
+  border-color: #56b4e9;
+}
+.eq-panel .hl-route {
+  border-color: #d55e00;
+}
+.eq-panel .hl-stream {
+  border-color: #0072b2;
+}
+.eq-panel .hl-block {
+  border-color: #525252;
+}
+.eq-panel .hl-attack {
+  border-color: #d55e00;
+}
+.eq-panel .hl-defence {
+  border-color: #009e73;
+}
 .eq-panel[data-hl~="agents"] .hl-agents,
 .eq-panel[data-hl~="tools"] .hl-tools,
 .eq-panel[data-hl~="p2p"] .hl-p2p,
@@ -238,6 +265,15 @@
 .eq-panel[data-hl~="call"] .hl-call,
 .eq-panel[data-hl~="ask"] .hl-ask,
 .eq-panel[data-hl~="answer"] .hl-answer,
+.eq-panel[data-hl~="verifier"] .hl-verifier,
+.eq-panel[data-hl~="challenge"] .hl-challenge,
+.eq-panel[data-hl~="aud"] .hl-aud,
+.eq-panel[data-hl~="sum"] .hl-sum,
+.eq-panel[data-hl~="route"] .hl-route,
+.eq-panel[data-hl~="stream"] .hl-stream,
+.eq-panel[data-hl~="block"] .hl-block,
+.eq-panel[data-hl~="attack"] .hl-attack,
+.eq-panel[data-hl~="defence"] .hl-defence,
 .eq-panel[data-hl~="retry"] .hl-retry {
   background-color: rgb(0 114 178 / 0.18);
 }

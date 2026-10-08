@@ -1,0 +1,118 @@
+<A2AWidget>
+  <Eq
+    label="When the first piece of the result reaches the orchestrator: streamed, after the first chunk; blocking, only after every chunk and the final state"
+    tex="\begin{gathered} \htmlClass{hl-stream}{t^{\text{stream}}_{\text{first}}} = t_0 + 2t_{\text{net}} + t_{\text{dec}} + t_{\text{start}} + t_{\text{chunk}} \\ \htmlClass{hl-block}{t^{\text{block}}_{\text{first}}} = t^{\text{stream}}_{\text{first}} + (k-1)\,t_{\text{chunk}} + t_{\text{dec}} \end{gathered}"
+  />
+</A2AWidget>
+
+<Layer kind="concept">
+
+MCP connects an agent to **tools**: things with a schema that do one job and answer. Sometimes the thing on the other end is itself an **agent**: it plans, uses its own tools, keeps state for minutes or hours, and may come back with a question. The **Agent2Agent protocol (A2A)** is for that. The version modelled here is **A2A 1.0** ([specification](https://a2a-protocol.org/latest/specification/), release [v1.0.1](https://github.com/a2aproject/A2A/releases/tag/v1.0.1) of 2026-05-28; accessed 2026-10-08). The animation's two agents are an **orchestrator** that delegates and a remote **research agent** that summarises.
+
+**Discovery: the agent card.** The orchestrator first reads `/.well-known/agent-card.json`: the agent's name, the interfaces it serves (binding, URL, protocol version), its capabilities (streaming here) and its **skills**. The card is how one agent decides whether another can help, and with which URL and binding.
+
+**A task and its life cycle.** `SendMessage` hands over a message; the remote agent may answer with a plain **Message** (step through **A message, no task**) or create a **Task** with an ID, which moves through `submitted`, `working` and then a terminal state: `completed`, `failed`, `canceled` or `rejected`. Two states are **interrupted**: `input required` (a question back) and `auth required` (someone must sign in). The diagram under the chart lights each state as the orchestrator learns of it.
+
+**Blocking or streaming.** With `SendMessage` the orchestrator waits and sees only the end: in **Delegate and wait** the only state it ever sees is `completed`, after <V of="a2a.a2a_send.first_result_ms" fmt="ms" />. With `SendStreamingMessage` the answer is a Server-Sent Events stream: the Task, then `statusUpdate` and `artifactUpdate` events, closing when the task is done. In **Delegate and stream** the first chunk of the summary arrives at <V of="a2a.a2a_stream.first_result_ms" fmt="ms" />. Results travel as **artifacts**, not messages: the spec says messages "SHOULD NOT be used to deliver task outputs" (section 3.7).
+
+**Multi-turn.** In **Input required** the research agent asks which meeting; the orchestrator answers with a new message carrying the same `taskId` and `contextId`, and the task resumes. In **Auth required** the agent needs the user's calendar: the user signs in **outside A2A** (the spec's in-task authorisation, section 7.6, wants credentials delivered out of band, so they do not travel through a chain of agents), and the orchestrator then tells the agent.
+
+**Endings and errors.** A finished task accepts nothing more: in **Cancel, then too late** cancelling again gives -32002 (`TaskNotCancelableError`) and answering or subscribing gives -32004 (`UnsupportedOperationError`). **Errors** shows the rest: an unknown task (-32001), a request without the `A2A-Version` header, which an agent MUST read as version 0.3 and so refuses (-32009), the 0.3 method name `message/send` (1.0 renamed every method to PascalCase: -32601), and a message with no parts (-32602).
+
+**Checked against the official SDK.** Every one of these sessions was also played by the engine's orchestrator against an agent written with the official A2A Python SDK (<V of="a2a_sdk.version" fmt="raw" />): <V of="a2a_sdk.scenarios" fmt="int" /> sessions, <V of="a2a_sdk.messages" fmt="int" /> messages, equal to the engine's own agent once IDs and timestamps are normalised; CI records it again on every change. Two things the recordings taught the model: cancelling a task that is waiting for input writes `canceled` over its stored status and keeps its question, and a message to a finished task is refused as "in terminal state".
+
+### A2A and MCP
+
+The A2A project's own [comparison](https://a2a-protocol.org/latest/topics/a2a-and-mcp/) (accessed 2026-10-08) puts it in one line: "An agentic application might primarily use A2A to communicate with other agents. Each individual agent internally uses MCP to interact with its specific tools and resources." Where they overlap and differ, from the two specifications:
+
+|                    | MCP (2026-07-28)                                                                                                                                             | A2A (1.0)                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Connects           | a host's client to a server's tools, resources and prompts ([architecture](https://modelcontextprotocol.io/specification/2026-07-28/architecture))           | one agent to another, possibly opaque, agent (spec 1)                                                  |
+| Discovery          | optional `server/discover`, or the server's answers (chapter 2)                                                                                              | the Agent Card at a well-known URL (spec 8.2)                                                          |
+| Unit of work       | a request and its result (`tools/call`)                                                                                                                      | a Task with an ID and a life cycle (spec 4.1)                                                          |
+| Needing more input | an `input_required` result, then a retry with answers (chapter 5)                                                                                            | `input required` / `auth required`, then a message to the same task (spec 3.4, 7.6)                    |
+| Long work          | progress notifications; tasks moved to an official extension in 2026-07-28 ([changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog)) | streams of status and artifact updates, push notifications, `SubscribeToTask` (spec 3.5)               |
+| Results            | content in the result                                                                                                                                        | artifacts, kept apart from messages (spec 3.7)                                                         |
+| Wire               | JSON-RPC 2.0 over stdio or Streamable HTTP (chapter 4)                                                                                                       | JSON-RPC 2.0 over HTTP with SSE, gRPC, or HTTP+JSON (spec 9–11)                                        |
+| Version            | in `_meta` on every request                                                                                                                                  | the `A2A-Version` header; empty means 0.3 (spec 3.6)                                                   |
+| Authorisation      | the OAuth 2.1 profile ([chapter 6](/learn/06-authorisation))                                                                                                 | security schemes declared in the card: API key, HTTP, OAuth 2.0, OpenID Connect, mutual TLS (spec 4.5) |
+
+Both are JSON-RPC 2.0, both stream with SSE over HTTP, and both now let the far side ask for more input without holding a request open in the other direction. The difference is what is on the far side: a tool you call, or an agent you hand a task to.
+
+</Layer>
+
+<Callout kind="illustrative">
+
+The research agent's replies are scripted, and so is the orchestrator's choice of what to send. The times are illustrative (<V of="a2a.params.net" fmt="ms" /> one way on the network, <V of="a2a.params.chunk" fmt="ms" /> per artifact chunk, <V of="a2a.params.model" fmt="ms" /> for the orchestrator's model to decide, <V of="a2a.params.human" fmt="ms" /> for a person to sign in). IDs come from a seeded generator and timestamps from a simulated clock. Not modelled: push notifications, `ListTasks`, the gRPC and HTTP+JSON bindings, signed agent cards.
+
+</Callout>
+
+<Layer kind="maths">
+
+The equation follows one streamed delegation. The orchestrator sends at $t_0$; each way costs $t_{\text{net}}$; the agent takes $t_{\text{dec}}$ to accept, $t_{\text{start}}$ to start and $t_{\text{chunk}}$ per chunk of its artifact. Streaming delivers the first chunk as soon as it exists; a blocking call returns only after all $k$ chunks and the final state. With $k = 2$ here the gap is <V of="a2a.params.chunk" fmt="ms" /> plus a decision, and it grows linearly with $k$: a long report streamed in 20 chunks reaches the orchestrator 19 chunk-times earlier.
+
+The total is the same either way: both sessions end at <V of="a2a.a2a_send.end_ms" fmt="ms" /> or <V of="a2a.a2a_stream.end_ms" fmt="ms" /> (the blocking one adds a `GetTask`). Streaming buys earlier partial results and visibility of every state, at the price of more messages: <V of="a2a.a2a_stream.messages" fmt="int" /> against <V of="a2a.a2a_send.messages" fmt="int" /> before that `GetTask`.
+
+</Layer>
+
+<Layer kind="code">
+
+The orchestrator's streamed request:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "SendStreamingMessage",
+  "params": {
+    "message": {
+      "messageId": "82879b97-d989-4487-9b73-7ad76babae29",
+      "role": "ROLE_USER",
+      "parts": [{ "text": "summarise the design notes" }]
+    }
+  }
+}
+```
+
+The last chunk of the artifact, one SSE event (`append` and `lastChunk`):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "artifactUpdate": {
+      "taskId": "bd0e73a7-fc36-483a-b0c8-28b75f82f2c3",
+      "contextId": "1711a14e-5236-43f4-9302-b53516fcd678",
+      "artifact": {
+        "artifactId": "e5e9a5cf-b537-4f84-a5f3-cfa551e83464",
+        "name": "summary",
+        "parts": [{ "text": "three decisions, two actions, no blockers." }]
+      },
+      "append": true,
+      "lastChunk": true
+    }
+  }
+}
+```
+
+The research agent refusing a message to a finished task, cut from the vendored engine:
+
+```ts
+if (TERMINAL.includes(task.status.state)) {
+  this.state = "refused the message";
+  return out(rpcError(id, -32004, "Task " + task.id + " is in terminal state: " + task.status.state, [errorInfo("UNSUPPORTED_OPERATION")]));
+}
+```
+
+</Layer>
+
+<Callout kind="deeper">
+
+- The [Agents hub](https://brendanjameslynskey.github.io/LLM_Hub_Agents/), [Papers: agents and tools](https://brendanjameslynskey.github.io/Papers_06_Agents_and_Tools/#slide-01), and the [MCP hub](https://brendanjameslynskey.github.io/LLM_Hub_MCP/).
+- MCP series: [agent servers built on sampling](https://brendanjameslynskey.github.io/MCP_05_Ecosystem_and_Patterns/#slide-06), MCP's own way to put an agent behind a server.
+- The A2A specification's [life of a task](https://a2a-protocol.org/latest/topics/life-of-a-task/) and [streaming and asynchronous operations](https://a2a-protocol.org/latest/topics/streaming-and-async/).
+- Every recorded A2A exchange, and the SDK agent's source: [the conformance page](/conformance).
+- Sub-agents inside one harness, as opposed to agents across a protocol: [Agent Harnesses Explained, sub-agents](https://agent-harnesses-explained.vercel.app/learn/06-sub-agents).
+
+</Callout>

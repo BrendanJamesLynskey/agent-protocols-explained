@@ -8,7 +8,10 @@ import { expect, test, type Locator } from "@playwright/test";
 import fx from "../fixtures/site_fixtures.json";
 
 import {
+  a2aCaption,
   dropCaption,
+  flowCaption,
+  gatewayCaption,
   integrationCaption,
   journeyCaption,
   sequenceCaption,
@@ -190,6 +193,90 @@ const CASES: Case[] = [
     "legacy_sampling",
     select("legacy_sampling"),
   ),
+  {
+    path: "/learn/06-authorisation",
+    id: "flow-oauth",
+    name: "OAuth, configured correctly",
+    captions: (CH.oauth.flows.ok.frames as Obj[]).map(flowCaption),
+  },
+  {
+    path: "/learn/06-authorisation",
+    id: "flow-oauth",
+    name: "OAuth, wrong audience",
+    captions: (CH.oauth.flows.wrong_audience.frames as Obj[]).map(flowCaption),
+    choose: async (fig) => {
+      await change(fig, async () => {
+        await fig
+          .getByLabel("Configuration", { exact: true })
+          .selectOption("wrong_audience");
+      });
+    },
+  },
+  {
+    path: "/learn/07-gateways-and-composition",
+    id: "gateway-widget",
+    name: "gateway, flat names",
+    captions: (CH.gateway.gateways.flat.frames as Obj[]).map(gatewayCaption),
+  },
+  {
+    path: "/learn/07-gateways-and-composition",
+    id: "gateway-widget",
+    name: "gateway, prefixed names",
+    captions: (CH.gateway.gateways.prefix.frames as Obj[]).map(gatewayCaption),
+    choose: radio("prefix"),
+  },
+  {
+    path: "/learn/08-agent-to-agent",
+    id: "a2a-widget",
+    name: "A2A, delegate and stream",
+    captions: (CH.a2a.a2a.a2a_stream.frames as Obj[]).map(a2aCaption),
+  },
+  {
+    path: "/learn/08-agent-to-agent",
+    id: "a2a-widget",
+    name: "A2A, auth required",
+    captions: (CH.a2a.a2a.a2a_auth.frames as Obj[]).map(a2aCaption),
+    choose: select("a2a_auth"),
+  },
+  {
+    path: "/learn/08-agent-to-agent",
+    id: "a2a-widget",
+    name: "A2A, cancel then too late",
+    captions: (CH.a2a.a2a.a2a_cancel.frames as Obj[]).map(a2aCaption),
+    choose: select("a2a_cancel"),
+  },
+  {
+    path: "/learn/09-protocol-security",
+    id: "flow-security",
+    name: "tool poisoning, undefended",
+    captions: (CH.security.flows["tool_poisoning-open"].frames as Obj[]).map(
+      flowCaption,
+    ),
+  },
+  {
+    path: "/learn/09-protocol-security",
+    id: "flow-security",
+    name: "tool poisoning, defended",
+    captions: (
+      CH.security.flows["tool_poisoning-defended"].frames as Obj[]
+    ).map(flowCaption),
+    choose: radio("on"),
+  },
+  {
+    path: "/learn/09-protocol-security",
+    id: "flow-security",
+    name: "confused deputy, undefended",
+    captions: (CH.security.flows["confused_deputy-open"].frames as Obj[]).map(
+      flowCaption,
+    ),
+    choose: async (fig) => {
+      await change(fig, async () => {
+        await fig
+          .getByLabel("Attack", { exact: true })
+          .selectOption("confused_deputy");
+      });
+    },
+  },
 ];
 
 for (const c of CASES) {

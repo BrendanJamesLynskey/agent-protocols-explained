@@ -13,7 +13,7 @@ import { MCP_HUB, OAUTH_FOR_MCP } from "@/lib/site";
 export const metadata = {
   title: "Learn",
   description:
-    "Chapters on how agents talk to tools over MCP, each built around an animation of real protocol messages from state machines checked against the official SDK.",
+    "Chapters on how agents talk to tools over MCP and to each other over A2A, each built around an animation of real protocol messages from state machines checked against the official SDKs.",
 };
 
 export default function LearnIndex(): JSX.Element {
@@ -23,14 +23,15 @@ export default function LearnIndex(): JSX.Element {
         /learn
       </p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-        How agents talk to tools
+        How agents talk to tools and to each other
       </h1>
       <p className="mt-4 text-neutral-600 dark:text-neutral-300">
         One chapter per mechanism, each opening with an animation. Every message
         is sent by the Agent_Loop_Sim engine&apos;s protocol state machines,
-        whose sessions equal the official MCP SDK&apos;s, message for message.
-        Toggle layers (Concept / Maths / Code) inside any chapter to choose how
-        deep to go. For the slides behind each chapter, see the{" "}
+        whose sessions equal the official MCP SDK&apos;s (and, for A2A, the
+        official A2A SDK&apos;s), message for message. Toggle layers (Concept /
+        Maths / Code) inside any chapter to choose how deep to go. For the
+        slides behind each chapter, see the{" "}
         <a
           href={MCP_HUB}
           className="focus-ring rounded text-accent underline underline-offset-2 dark:text-indigo-300"

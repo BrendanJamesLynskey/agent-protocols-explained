@@ -7,6 +7,7 @@
  *
  * Server-side only: it reads the tokenizer from disk.
  */
+import A2A_SDK from "@/data/a2a_sdk_exchanges.json";
 import SDK from "@/data/sdk_exchanges.json";
 import {
   CHAPTER_CONFIGS,
@@ -85,6 +86,37 @@ export function tree(): Obj {
       t[ch].drop = {};
       for (const [k, v] of Object.entries(d.drops)) t[ch].drop[k] = v.totals;
     }
+    if (d.flows) {
+      for (const [k, r] of Object.entries(d.flows)) {
+        const frames = r.frames as Obj[];
+        const o = r.outcome as Obj;
+        const end = o.failed_at ?? o.stopped_at ?? null;
+        t[ch][k] = {
+          steps: frames.length,
+          http: frames.filter((x) => !x.virtual).length,
+          checks: frames.filter((x) => x.kind === "check" || x.kind === "fail")
+            .length,
+          stop_step: end === null ? "none" : (end as number) + 1,
+        };
+      }
+    }
+    if (d.gateways) {
+      for (const [k, g] of Object.entries(d.gateways)) {
+        t[ch][k] = {
+          merged_tools: g.merged_tools,
+          merged_tokens: g.merged_tokens,
+          direct_tokens: g.direct_tokens,
+          routed_to: g.routed_to,
+          tools: ((g.merge as Obj).rows as Obj[]).length,
+        };
+        for (const p of g.per_server as Obj[])
+          t[ch][`${k}_${p.alias as string}`] = p.tokens;
+      }
+    }
+    if (d.a2a) {
+      for (const [k, a] of Object.entries(d.a2a))
+        t[ch][k] = { ...a.summary, steps: a.frames.length };
+    }
   }
   t.why.p2p = {};
   t.why.protocol = {};
@@ -118,6 +150,16 @@ export function tree(): Obj {
     ),
   };
   t.spec = { current: proto.LATEST, accessed: proto.SPEC_ACCESSED };
+  t.a2a_sdk = {
+    version: A2A_SDK.sdk,
+    protocol: A2A_SDK.protocol,
+    scenarios: Object.keys(A2A_SDK.scenarios).length,
+    messages: Object.values(A2A_SDK.scenarios).reduce(
+      (a, v) => a + (v as unknown[]).length,
+      0,
+    ),
+  };
+  t.a2a.params = proto.a2a.TIMES;
   TREE = t;
   return t;
 }

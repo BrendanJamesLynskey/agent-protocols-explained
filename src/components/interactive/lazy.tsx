@@ -47,3 +47,15 @@ export const DropWidget = dynamic(() => import("./DropWidget"), {
   ssr: false,
   loading: loading("animation"),
 });
+export const FlowWidget = dynamic(() => import("./FlowWidget"), {
+  ssr: false,
+  loading: loading("animation"),
+});
+export const GatewayWidget = dynamic(() => import("./GatewayWidget"), {
+  ssr: false,
+  loading: loading("animation"),
+});
+export const A2AWidget = dynamic(() => import("./A2AWidget"), {
+  ssr: false,
+  loading: loading("animation"),
+});

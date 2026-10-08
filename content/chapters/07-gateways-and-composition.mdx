@@ -1,0 +1,78 @@
+<GatewayWidget>
+  <Eq
+    label="The tool list costs the tokens of every exposed definition; a call goes to the server that owns the exposed name"
+    tex="\begin{gathered} \htmlClass{hl-sum}{T_{\text{list}}} = \sum_{t\,\in\,\text{exposed}} \operatorname{tok}\big(\htmlClass{hl-server}{\text{def}(t)}\big) \\ \htmlClass{hl-route}{\operatorname{route}(n)} = \operatorname{owner}(n),\quad n = \begin{cases} \text{tool} & \text{flat} \\ \text{alias}.\text{tool} & \text{prefix} \end{cases} \end{gathered}"
+  />
+</GatewayWidget>
+
+<Layer kind="concept">
+
+A host with ten MCP servers holds ten connections, ten sets of credentials and ten tool lists. A **gateway** collapses them into one: it is an MCP server to the host and an MCP client to each server behind it. It lists their tools, merges them, and routes each `tools/call` to the server that owns the tool. Step through the animation: one `tools/list` from the host fans out to the <V of="gateway.flat.tools" fmt="int" /> tools of four servers, and comes back as one list.
+
+**Names collide.** Tool names are only unique within a server. Here `files`, `github` and `web` all offer `search`, and `files` and `github` both offer `read_file`. The spec's [tools page](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) (accessed 2026-10-08) says it plainly: aggregators "MAY encounter naming collisions" and "SHOULD implement a disambiguation strategy such as prefixing tool names with a server identifier", and the server's own `serverInfo.name` "SHOULD NOT be relied upon" for it, since it need not be unique.
+
+- **flat**: the first server registered wins each name. The host sees <V of="gateway.flat.merged_tools" fmt="int" /> tools; three are shadowed, silently. When the model asks for `search` meaning the web, the gateway sends it to <V of="gateway.flat.routed_to" fmt="raw" />, and the model gets "no matches in the project" back: a wrong answer, not an error.
+- **prefix**: every tool is exposed as `alias.tool` with an alias the gateway chooses (the MCP series writes `github__search`; any separator among the characters the spec allows for tool names, letters, digits, `_`, `-` and `.`, will do). All <V of="gateway.prefix.merged_tools" fmt="int" /> are reachable and `web.search` goes to <V of="gateway.prefix.routed_to" fmt="raw" />.
+- **filtered**: prefixed, and only an allow-list for the task is exposed: <V of="gateway.filtered.merged_tools" fmt="int" /> tools.
+
+**The tokens are the bill.** The model reads every exposed definition in its prompt on every turn. The four servers' lists cost <V of="gateway.flat.direct_tokens" fmt="int" /> tokens together (Qwen2.5 tokenizer); prefixing every name costs a little more (<V of="gateway.prefix.merged_tokens" fmt="int" />), while flat shadowing "saves" tokens only by losing tools (<V of="gateway.flat.merged_tokens" fmt="int" />). Filtering to what the task needs cuts the list to <V of="gateway.filtered.merged_tokens" fmt="int" />. The same cost seen from the harness's side, and what it does to the context window, is [Agent Harnesses Explained, the context budget](https://agent-harnesses-explained.vercel.app/learn/03-the-context-budget).
+
+**What else a gateway does.** It is also where a deployment puts authentication to the servers, audit logs and policy: the [OAuth_for_MCP](https://brendanjameslynskey.github.io/OAuth_for_MCP/#/12) deck walks through a real one (Docker's MCP Gateway), and the two playgrounds below run an aggregating gateway and a per-server bridge in Docker Compose.
+
+</Layer>
+
+<Callout kind="illustrative">
+
+The four servers, their tools and descriptions are invented for the example; the messages follow the 2026-07-28 revision (the `_meta` envelope, `resultType`). Token counts are Qwen2.5's over the definitions as a chat template writes them; other models' tokenizers give other numbers, and a real host may add its own wrapper text. The gateway's policies are this engine's, not any product's.
+
+</Callout>
+
+<Layer kind="maths">
+
+With $S$ servers each exposing $k_s$ tools of about $d$ tokens each, the list costs $T_{\text{list}} \approx d \sum_s k_s$ tokens on **every** model call, so over a session of $n$ calls the tool list alone costs $n\,T_{\text{list}}$ input tokens (before any prompt caching). Prefixing changes $T_{\text{list}}$ only by the extra name tokens; filtering changes it by the fraction kept, here <V of="gateway.filtered.merged_tools" fmt="int" /> of <V of="gateway.flat.tools" fmt="int" /> tools.
+
+Shadowing is a probability problem for the model as well as a routing one: if the model picks among same-named tools by name alone, a flat merge maps all of them to one server, so the call is right only when the model meant the first-registered server.
+
+</Layer>
+
+<Layer kind="code">
+
+The merge, as the vendored engine does it:
+
+```ts
+const exposed = policy === "flat" ? (t.name as string) : s.alias + "." + t.name;
+let status = "exposed";
+if (policy === "flat" && exposed in owner) status = "shadowed";
+else if (policy === "filtered" && !ALLOW.includes(exposed)) status = "filtered";
+```
+
+The host's call under **prefix**, as it reaches the gateway:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/call",
+  "params": {
+    "name": "web.search",
+    "arguments": { "query": "MCP gateway tool name collisions" },
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientInfo": { "name": "example-host", "version": "1.0.0" },
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  }
+}
+```
+
+</Layer>
+
+<Callout kind="deeper">
+
+- The playgrounds: [MCP Gateway Playground](https://github.com/BrendanJamesLynskey/MCP_Gateway_Playground) (three servers behind an aggregating gateway) and [MCP Supergateway Playground](https://github.com/BrendanJamesLynskey/MCP_Supergateway_Playground) (one bridge per server).
+- [OAuth_for_MCP: Docker MCP Gateway architecture](https://brendanjameslynskey.github.io/OAuth_for_MCP/#/13) and [the gateway as an OAuth interceptor](https://brendanjameslynskey.github.io/OAuth_for_MCP/#/14).
+- MCP series: [multi-server orchestration](https://brendanjameslynskey.github.io/MCP_05_Ecosystem_and_Patterns/#slide-07).
+- The tool list in the prompt: [Agent Harnesses Explained, tool calling](https://agent-harnesses-explained.vercel.app/learn/02-tool-calling).
+- [MCP hub](https://brendanjameslynskey.github.io/LLM_Hub_MCP/).
+
+</Callout>

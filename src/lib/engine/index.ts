@@ -1,7 +1,8 @@
 /**
  * The vendored Agent_Loop_Sim engine (src/lib/engine/vendor, pinned in VENDORED.json) and what
  * each chapter animates (src/data/chapter_configs.json): MCP sessions played by the protocol
- * state machines, framed on each transport, and the views derived from them. Nothing here
+ * state machines, framed on each transport, and the views derived from them; OAuth flows and
+ * attacks as step charts, the gateway's merges, and A2A sessions between two agents. Nothing here
  * calls a language model, and nothing opens a network connection: the sessions are simulated.
  */
 import CONFIGS from "@/data/chapter_configs.json";
@@ -56,11 +57,45 @@ export function drops(ns: number[]): Record<string, Obj> {
   return out;
 }
 
+/** One A2A session: the orchestrator and the research agent, with its chart and summary. */
+export type A2ASession = {
+  name: string;
+  title: string;
+  wire: Obj[];
+  log: Obj[];
+  card: Obj | null;
+  frames: Obj[];
+  summary: Obj;
+};
+
+export function a2aSession(name: string): A2ASession {
+  const sc = P.a2a.a2aScenario(name);
+  const p = P.a2a.play(sc);
+  return {
+    name,
+    title: sc.title as string,
+    wire: p.wire,
+    log: p.log,
+    card: p.card,
+    frames: P.a2aFrames(p),
+    summary: P.a2aSummary(p),
+  };
+}
+
+/** A step-by-step flow (an OAuth variant, an attack with or without its defence) and its chart. */
+export function flow(run: Obj): Obj {
+  return { ...run, frames: P.flowFrames(run) };
+}
+
 export type ChapterData = {
   sessions: Record<string, Session>;
   threeWays?: Record<string, Obj[]>;
   journeys?: Record<string, Obj[]>;
   drops?: Record<string, Obj>;
+  flows?: Record<string, Obj>;
+  gateways?: Record<string, Obj>;
+  a2a?: Record<string, A2ASession>;
+  taskStates?: { states: string[]; transitions: string[][] };
 };
 
 /** Everything one chapter animates. `tok` is needed only where tokens are counted. */
@@ -84,6 +119,29 @@ export function runChapter(
       out.threeWays[n] = P.threeWays(P.play(P.protocolScenario(n)), tok);
   }
   if (cfg.drops) out.drops = drops(cfg.drops.n as number[]);
+  if (cfg.oauth) {
+    out.flows = {};
+    for (const v of cfg.oauth as string[]) out.flows[v] = flow(P.runOauth(v));
+  }
+  if (cfg.attacks) {
+    out.flows = {};
+    for (const a of cfg.attacks as string[])
+      for (const d of [false, true])
+        out.flows[`${a}-${d ? "defended" : "open"}`] = flow(
+          P.runSecurity(a, d),
+        );
+  }
+  if (cfg.gateway) {
+    if (!tok) throw new Error("this chapter needs the tokenizer");
+    out.gateways = {};
+    for (const pol of cfg.gateway as string[])
+      out.gateways[pol] = P.gatewayRun(pol, tok);
+  }
+  if (cfg.a2a) {
+    out.a2a = {};
+    for (const n of cfg.a2a as string[]) out.a2a[n] = a2aSession(n);
+    out.taskStates = { states: P.a2a.STATES, transitions: P.a2a.TRANSITIONS };
+  }
   return out;
 }
 

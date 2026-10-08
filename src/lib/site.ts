@@ -22,6 +22,8 @@ export const GITHUB_URL =
 export const ENGINE_URL =
   "https://github.com/BrendanJamesLynskey/Agent_Loop_Sim";
 export const SDK_URL = "https://github.com/modelcontextprotocol/python-sdk";
+export const A2A_SDK_URL = "https://github.com/a2aproject/a2a-python";
+export const A2A_SPEC_URL = "https://a2a-protocol.org/latest/specification/";
 export const SPEC_URL =
   "https://modelcontextprotocol.io/specification/2026-07-28";
 

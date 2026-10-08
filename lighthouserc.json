@@ -9,7 +9,11 @@
         "http://localhost:3000/learn/01-why-a-protocol",
         "http://localhost:3000/learn/02-json-rpc-and-the-life-cycle",
         "http://localhost:3000/learn/04-transports",
-        "http://localhost:3000/learn/05-sampling-and-elicitation"
+        "http://localhost:3000/learn/05-sampling-and-elicitation",
+        "http://localhost:3000/learn/06-authorisation",
+        "http://localhost:3000/learn/07-gateways-and-composition",
+        "http://localhost:3000/learn/08-agent-to-agent",
+        "http://localhost:3000/learn/09-protocol-security"
       ],
       "numberOfRuns": 3
     },

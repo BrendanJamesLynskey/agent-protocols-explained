@@ -1,0 +1,77 @@
+<FlowWidget variant="oauth">
+  <Eq
+    label="PKCE: the challenge is the SHA-256 of the verifier, base64url-encoded; the server accepts a token only if its audience is this server"
+    tex="\begin{gathered} \htmlClass{hl-challenge}{\texttt{code\_challenge}} = \\ \operatorname{BASE64URL}\big(\operatorname{SHA256}(\htmlClass{hl-verifier}{\texttt{code\_verifier}})\big) \\ \text{accept} \iff \htmlClass{hl-aud}{\texttt{aud}} = \text{this server} \end{gathered}"
+  />
+</FlowWidget>
+
+<Layer kind="concept">
+
+A local MCP server over stdio runs as the user and needs no protocol-level sign-in. A server reached over HTTP does: it is a **protected resource** in OAuth's terms, and the client must get a token for it. The 2026-07-28 revision's [authorization page](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization) (accessed 2026-10-08) builds the flow from OAuth 2.1 and five RFCs, and every step in the chart is one of them. With everything configured correctly the dance takes <V of="oauth.ok.steps" fmt="int" /> steps, <V of="oauth.ok.http" fmt="int" /> of them HTTP messages.
+
+**Discovery.** The first request has no token, so the server answers `401` with `WWW-Authenticate: Bearer resource_metadata="…"`. The client reads the server's **protected-resource metadata** ([RFC 9728](https://www.rfc-editor.org/rfc/rfc9728)), which names its authorisation server, then that server's own metadata ([RFC 8414](https://www.rfc-editor.org/rfc/rfc8414)), and checks the issuer in it is the one it asked for.
+
+**Registration.** The client needs a `client_id` at an authorisation server it has never met. In 2026-07-28 the preferred way is a **Client ID Metadata Document**: the `client_id` is an HTTPS URL, and the authorisation server fetches the client's metadata from it. Dynamic Client Registration, which the [OAuth_for_MCP](https://brendanjameslynskey.github.io/OAuth_for_MCP/#/7) deck describes for the 2025-06 profile, is now deprecated but still allowed: choose **Dynamic Client Registration** to see it (<V of="oauth.dcr.steps" fmt="int" /> steps).
+
+**PKCE and the code.** The client makes a random `code_verifier` and sends only its hash, the `code_challenge`, with the user to the authorisation endpoint ([RFC 7636](https://www.rfc-editor.org/rfc/rfc7636)). The `resource` parameter ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)) names the MCP server the token is for. On the way back the client checks `state` and the `iss` parameter ([RFC 9207](https://www.rfc-editor.org/rfc/rfc9207)), then redeems the code with the verifier itself: the authorisation server hashes it and compares. A code stolen in transit is useless without the verifier, which never left the client.
+
+**The token's audience.** The authorisation server stamps the resource into the token's `aud`. The MCP server MUST check the token was issued for it, and MUST NOT pass the token on to anything else.
+
+**Break it.** Each "Break it" configuration fails at the check the spec puts there, and the outcome line says which rule stopped it: an authorisation server that does not advertise PKCE (the client MUST refuse, step <V of="oauth.no_pkce_support.stop_step" fmt="int" />); a client that leaves PKCE out (the authorisation server refuses, step <V of="oauth.pkce_skipped.stop_step" fmt="int" />); the wrong verifier (the code cannot be redeemed, step <V of="oauth.wrong_verifier.stop_step" fmt="int" />); metadata naming a different issuer (step <V of="oauth.issuer_mismatch.stop_step" fmt="int" />); an `iss` mix-up on the way back (step <V of="oauth.iss_mismatch.stop_step" fmt="int" />); a token minted for another server (`401`, step <V of="oauth.wrong_audience.stop_step" fmt="int" />); a scope too narrow for the tool (`403` with the scope to ask for, step <V of="oauth.insufficient_scope.stop_step" fmt="int" />); and a server that forwards the client's token upstream, where the upstream API refuses a token not issued for it (step <V of="oauth.token_passthrough.stop_step" fmt="int" />).
+
+</Layer>
+
+<Callout kind="illustrative">
+
+The tokens are opaque strings with their claims kept beside them (a real server verifies a signed JWT or asks the authorisation server); the hosts are invented (`*.example.com`); the random values come from a seeded generator so the page and the tests see the same run. The SHA-256 is real: the engine's test suite includes RFC 7636's own test vector. Signing in is a single scripted step.
+
+</Callout>
+
+<Layer kind="maths">
+
+PKCE turns a secret the client never sends into a check the server can make later. With a verifier $v$ of 43 to 128 characters,
+
+$$
+c = \operatorname{BASE64URL}\big(\operatorname{SHA256}(v)\big)
+$$
+
+goes out with the user in the first leg; $v$ goes straight to the token endpoint in the second, and the authorisation server accepts the code only if it recomputes $c$ from $v$. An attacker who intercepts the code needs a $v'$ with $\operatorname{SHA256}(v') = \operatorname{SHA256}(v)$: a preimage of SHA-256. Forty-three characters from the 66 the RFC allows carry about $43 \log_2 66 \approx 260$ bits, so guessing is out too.
+
+The audience check is set membership: the server accepts a token $t$ only if $\text{resource}_{\text{self}} \in \text{aud}(t)$. Choose **wrong audience**: the token is valid, signed by the right issuer, unexpired, and still refused.
+
+</Layer>
+
+<Layer kind="code">
+
+The challenge, as the vendored engine computes it (`sha256` is a pure-TS SHA-256 the tests check against Node's):
+
+```ts
+export function pkceChallenge(verifier: string): string {
+  return b64url(sha256(utf8Bytes(verifier)));
+}
+```
+
+The MCP server's audience check, at the step where **wrong audience** fails:
+
+```ts
+if (
+  !check(
+    "mcp",
+    "token audience is this server",
+    presentedClaims.aud === RESOURCE,
+    "aud " + presentedClaims.aud + " vs " + RESOURCE,
+    "MCP servers MUST validate that access tokens were issued specifically for them",
+  )
+) {
+```
+
+</Layer>
+
+<Callout kind="deeper">
+
+- [OAuth_for_MCP](https://brendanjameslynskey.github.io/OAuth_for_MCP/#/6): discovery, [the end-to-end sequence](https://brendanjameslynskey.github.io/OAuth_for_MCP/#/8), [resource indicators and audience binding](https://brendanjameslynskey.github.io/OAuth_for_MCP/#/9) and [confused-deputy pitfalls](https://brendanjameslynskey.github.io/OAuth_for_MCP/#/11) (the 2025-06 profile, before Client ID Metadata Documents).
+- MCP series: [MCP Security & OAuth](https://brendanjameslynskey.github.io/MCP_04_Security_and_OAuth/#slide-02), the canonical flow, and [audience binding](https://brendanjameslynskey.github.io/MCP_04_Security_and_OAuth/#slide-04).
+- [MCP hub](https://brendanjameslynskey.github.io/LLM_Hub_MCP/) and the [Agents hub](https://brendanjameslynskey.github.io/LLM_Hub_Agents/).
+- Where the attacks on this flow go: [Protocol security, in brief](/learn/09-protocol-security).
+
+</Callout>

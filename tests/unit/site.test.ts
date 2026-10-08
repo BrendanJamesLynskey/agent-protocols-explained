@@ -92,17 +92,29 @@ describe("palette", () => {
   it("every actor and message kind has a colour", () => {
     for (const a of Object.keys(ACTOR_NAME))
       expect(ACTOR_COLOUR[a], a).toMatch(/^#[0-9A-Fa-f]{6}$/);
-    for (const k of ["request", "notification", "result", "error", "gate"])
+    for (const k of [
+      "request",
+      "notification",
+      "result",
+      "error",
+      "gate",
+      "check",
+      "fail",
+      "attack",
+    ])
       expect(MESSAGE_COLOUR[k], k).toMatch(/^#[0-9A-Fa-f]{6}$/);
   });
 });
 
 describe("chapters and site", () => {
   it("catalogue", async () => {
-    expect(SECTIONS).toHaveLength(5);
+    expect(SECTIONS).toHaveLength(9);
     expect(isValidSlug("01-why-a-protocol")).toBe(true);
     expect(isValidSlug("99-nope")).toBe(false);
     expect(getSectionMeta("04-transports").title).toBe("Transports");
+    expect(getSectionMeta("08-agent-to-agent").title).toBe(
+      "Agent to agent (A2A)",
+    );
     expect(await readSectionMdx("01-why-a-protocol")).toMatch(
       /^<IntegrationWidget>/,
     );
