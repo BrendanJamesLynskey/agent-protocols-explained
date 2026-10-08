@@ -59,18 +59,15 @@ test("the two-group site switch: a toggle and a row on desktop, a dropdown on ph
   // starts on this site's group
   await expect(agents).toBeVisible();
   await expect(llm).toBeHidden();
-  // this site's own entry stays "(soon)" until it is switched on everywhere (brief 22B)
   await expect(agents.getByRole("link", { name: "Harnesses" })).toHaveAttribute(
     "href",
     "https://agent-harnesses-explained.vercel.app",
   );
-  for (const soon of [
-    "Protocols",
-    "Context",
-    "Orchestration",
-    "Evals",
-    "Security",
-  ]) {
+  await expect(agents.getByRole("link", { name: "Protocols" })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  for (const soon of ["Context", "Orchestration", "Evals", "Security"]) {
     await expect(agents.getByText(soon)).toBeVisible();
     await expect(agents.getByRole("link", { name: soon })).toHaveCount(0);
   }
@@ -107,6 +104,9 @@ test("the two-group site switch: a toggle and a row on desktop, a dropdown on ph
   await expect(
     compact.getByRole("link", { name: "Harnesses" }),
   ).toHaveAttribute("href", "https://agent-harnesses-explained.vercel.app");
+  await expect(
+    compact.getByRole("link", { name: "Protocols" }),
+  ).toHaveAttribute("aria-current", "true");
   const box = await compact
     .getByRole("link", { name: "Decoder" })
     .boundingBox();
