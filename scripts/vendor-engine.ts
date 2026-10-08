@@ -2,8 +2,8 @@
  * scripts/vendor-engine.ts
  *
  * Vendor Agent_Loop_Sim's TypeScript port (with its protocols module), its tokenizer data, the
- * official MCP SDK's recorded exchanges and the engine's protocol parity fixtures at a pinned
- * commit, and record which one:
+ * official MCP and A2A SDKs' recorded exchanges (and the A2A SDK agent's source) and the
+ * engine's protocol parity fixtures at a pinned commit, and record which one:
  *
  *     pnpm vendor:engine <commit> [path/to/Agent_Loop_Sim]
  *
@@ -52,6 +52,10 @@ map["fixtures/sdk_exchanges.json"] = "src/data/sdk_exchanges.json";
 map["conformance/sdk_server.py"] = "src/data/sdk_server.py.txt";
 map["fixtures/protocols_fixtures.json"] =
   "tests/fixtures/protocols_fixtures.json";
+map["fixtures/a2a_sdk_exchanges.json"] = "src/data/a2a_sdk_exchanges.json";
+map["conformance/a2a_sdk_server.py"] = "src/data/a2a_sdk_server.py.txt";
+map["fixtures/protocols2_fixtures.json"] =
+  "tests/fixtures/protocols2_fixtures.json";
 
 const files: Record<string, { from: string; sha256: string }> = {};
 for (const [from, to] of Object.entries(map)) {

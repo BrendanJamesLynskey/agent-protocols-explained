@@ -41,6 +41,30 @@ export const SECTIONS = [
     summary:
       "When a server needs the user or a model, the direction reverses: a request from the server (2025-11-25) or an input_required result and a retry (2026-07-28), with the human gates in the host.",
   },
+  {
+    slug: "06-authorisation",
+    title: "Authorisation",
+    summary:
+      "The OAuth 2.1 flow an HTTP MCP server requires, step by step: discovery, registration, PKCE as SHA-256, the token's audience; and nine ways to break it, each failing at its own check.",
+  },
+  {
+    slug: "07-gateways-and-composition",
+    title: "Gateways and composition",
+    summary:
+      "One gateway in front of many servers: tool names that collide, a prefix that keeps them apart, an allow-list that cuts the tool list's token cost, and a call routed to the right server or the wrong one.",
+  },
+  {
+    slug: "08-agent-to-agent",
+    title: "Agent to agent (A2A)",
+    summary:
+      "An agent delegating to another over A2A 1.0: the agent card, a task's life cycle across two agents, streaming, input and auth required, cancellation; and where A2A and MCP overlap and differ.",
+  },
+  {
+    slug: "09-protocol-security",
+    title: "Protocol security, in brief",
+    summary:
+      "Three attacks at the protocol level, tool poisoning, a confused deputy and a hijacked state handle, each shown at the step where it happens, then again with the defence that stops it.",
+  },
 ] as const;
 
 export type SectionSlug = (typeof SECTIONS)[number]["slug"];

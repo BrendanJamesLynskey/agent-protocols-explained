@@ -6,7 +6,7 @@
  */
 import type { Obj } from "@/lib/engine";
 import { fmtInt, fmtMs } from "@/lib/format";
-import { ACTOR_NAME } from "@/lib/viz/palette";
+import { A2A_NAMES, ACTOR_NAME } from "@/lib/viz/palette";
 
 export function actorName(a: string): string {
   return ACTOR_NAME[a] ?? a;
@@ -57,4 +57,48 @@ export function dropCaption(s: Obj): string {
       ? ` (event id ${s.event_id})`
       : "";
   return `${fmtMs(s.t)} · ${actorName(s.actor)}: ${s.label}${ev}.`;
+}
+
+/** Chapters 6 and 9: one step of an OAuth flow or an attack (engine `flowFrames`). */
+export function flowCaption(f: Obj): string {
+  const who = `${actorName(f.from)} → ${actorName(f.to)}`;
+  switch (f.kind) {
+    case "check":
+      return `${actorName(f.from)} checks: ${f.label}. Passes.`;
+    case "fail":
+      return `${actorName(f.from)} checks: ${f.label}. Fails: the flow stops here.`;
+    case "attack":
+      return `Attack: ${f.label}.`;
+    case "gate":
+      return `${who}: ${f.label} (off the wire).`;
+    case "error":
+      return `${who}: ${f.label} (refused).`;
+    default:
+      return `${who}: ${f.label}.`;
+  }
+}
+
+/** Chapter 7: one step of the gateway walk-through (engine `gatewayRun` frames). */
+export function gatewayCaption(f: Obj): string {
+  if (f.virtual)
+    return f.from === f.to
+      ? `${actorName(f.from)}: ${f.label}.`
+      : `${actorName(f.from)} → ${actorName(f.to)}: ${f.label} (inside the host).`;
+  return `${actorName(f.from)} → ${actorName(f.to)}: ${f.label} (${fmtInt(f.bytes)} bytes).`;
+}
+
+export function a2aName(a: string): string {
+  return A2A_NAMES[a] ?? a;
+}
+
+/** Chapter 8: one message between the two agents (engine `a2aFrames`). */
+export function a2aCaption(f: Obj): string {
+  const who = `${a2aName(f.from)} → ${a2aName(f.to)}`;
+  if (f.virtual) return `Outside A2A, ${fmtMs(f.t)}: ${who}: ${f.label}.`;
+  const what = f.sse ? "SSE event" : (KIND_WORD[f.kind] ?? f.kind);
+  const task =
+    f.task !== null && f.task !== undefined
+      ? ` Task: ${String(f.task).replace("TASK_STATE_", "").toLowerCase().replaceAll("_", " ")}.`
+      : "";
+  return `${fmtMs(f.t)} · ${who}: ${f.label} (${what}, ${fmtInt(f.bytes)} bytes).${task}`;
 }

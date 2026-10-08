@@ -7,7 +7,10 @@ import type { MDXRemoteProps } from "next-mdx-remote/rsc";
 
 import { Layer } from "@/components/interactive/Layer";
 import {
+  A2AWidget,
   DropWidget,
+  FlowWidget,
+  GatewayWidget,
   IntegrationWidget,
   JourneyWidget,
   SequenceWidget,
@@ -32,4 +35,7 @@ export const mdxComponents: NonNullable<MDXRemoteProps["components"]> = {
   ThreeWaysWidget,
   TransportWidget,
   DropWidget,
+  FlowWidget,
+  GatewayWidget,
+  A2AWidget,
 };

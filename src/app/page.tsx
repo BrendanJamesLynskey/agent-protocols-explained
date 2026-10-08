@@ -34,7 +34,7 @@ export default function HomePage(): JSX.Element {
         Agent Protocols Explained
       </p>
       <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
-        How agents talk to tools, message by message.
+        How agents talk to tools and to each other, message by message.
       </h1>
       <div className="mt-8 grid items-center gap-8 md:grid-cols-[1fr_minmax(0,24rem)]">
         <div>
@@ -66,7 +66,11 @@ export default function HomePage(): JSX.Element {
             <Link href="/conformance" className={LINK}>
               the recordings
             </Link>
-            ). Nothing here calls a live model or opens a real connection.
+            ). Agents talk to other agents too: chapter 8 follows a task between
+            two agents over <strong>A2A</strong> 1.0, checked the same way
+            against the official A2A SDK ({v("a2a_sdk.version", "raw")}). Then
+            authorisation, gateways and the attacks on all of it. Nothing here
+            calls a live model or opens a real connection.
           </p>
         </div>
         <figure className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">

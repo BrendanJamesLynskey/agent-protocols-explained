@@ -1,15 +1,22 @@
 /**
- * /conformance: the official MCP SDK's recorded exchanges the engine is checked against,
+ * /conformance: the official MCP SDK's (and A2A SDK's) recorded exchanges the engine is checked against,
  * scenario by scenario, with the server's source and how the recordings were made. Server
  * Component, static.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import A2A_SDK from "@/data/a2a_sdk_exchanges.json";
 import SDK from "@/data/sdk_exchanges.json";
 import { proto, type Obj } from "@/lib/engine";
 import VENDORED from "@/lib/engine/vendor/VENDORED.json";
-import { ENGINE_URL, SDK_URL, repoFile } from "@/lib/site";
+import {
+  A2A_SDK_URL,
+  A2A_SPEC_URL,
+  ENGINE_URL,
+  SDK_URL,
+  repoFile,
+} from "@/lib/site";
 
 export const metadata = {
   title: "Conformance",
@@ -32,6 +39,12 @@ export default function ConformancePage(): JSX.Element {
   );
   const meta = new Map(proto.SCENARIOS.map((s) => [s.name as string, s]));
   const total = Object.values(scenarios).reduce((a, v) => a + v.length, 0);
+  const a2aRecs = A2A_SDK.scenarios as unknown as Record<string, Obj[]>;
+  const a2aTotal = Object.values(a2aRecs).reduce((a, v) => a + v.length, 0);
+  const a2aServer = readFileSync(
+    join(process.cwd(), "src/data/a2a_sdk_server.py.txt"),
+    "utf8",
+  );
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
       <p className="font-mono text-xs uppercase tracking-widest text-accent dark:text-indigo-300">
@@ -156,6 +169,90 @@ export default function ConformancePage(): JSX.Element {
           className="focus-ring overflow-x-auto whitespace-pre font-mono text-[0.7rem]"
         >
           {server}
+        </pre>
+      </details>
+
+      <div className="mdx-content mt-10">
+        <h2 id="a2a">A2A: the official A2A SDK</h2>
+        <p>
+          The agent-to-agent chapter is checked the same way. A research agent
+          written with the{" "}
+          <a href={A2A_SDK_URL} className={A}>
+            official A2A Python SDK
+          </a>{" "}
+          (<code>{A2A_SDK.sdk}</code>, protocol {A2A_SDK.protocol}; the{" "}
+          <a href={A2A_SPEC_URL} className={A}>
+            specification
+          </a>
+          , release 1.0.1) serves the JSON-RPC binding in process, and the
+          engine&apos;s own orchestrator drives it through{" "}
+          {Object.keys(a2aRecs).length} sessions, {a2aTotal} messages in all.
+          The engine&apos;s agent must give the same messages, compared as JSON
+          with every UUID renumbered in order of appearance and every timestamp
+          blanked. The engine&apos;s CI records the SDK again on every change.
+          The recording:{" "}
+          <a href={repoFile("src/data/a2a_sdk_exchanges.json")} className={A}>
+            a2a_sdk_exchanges.json
+          </a>
+          .
+        </p>
+        <ul>
+          <li>
+            Cancelling a task that is waiting for input (so nothing is running
+            for it) writes <code>TASK_STATE_CANCELED</code> over its stored
+            status and keeps the status message.
+          </li>
+          <li>
+            A message to a finished task is refused with -32004, &quot;Task … is
+            in terminal state: …&quot;.
+          </li>
+          <li>
+            A request with no <code>A2A-Version</code> header is read as 0.3,
+            and a 1.0-only agent refuses it (-32009), as the specification
+            requires.
+          </li>
+        </ul>
+      </div>
+      <ol className="mt-4 space-y-2" data-testid="a2a-recordings">
+        {Object.entries(a2aRecs).map(([name, msgs]) => (
+          <li key={name}>
+            <details className="rounded border border-neutral-200 p-2 dark:border-neutral-800">
+              <summary className="focus-ring min-h-11 cursor-pointer py-2 text-sm">
+                <span className="font-mono">{name}</span>{" "}
+                <span className="text-neutral-600 dark:text-neutral-400">
+                  ({msgs.length} messages):{" "}
+                  {proto.a2a.A2A_SCENARIOS[name]?.title as string}
+                </span>
+              </summary>
+              <ol className="mt-2 space-y-1 text-xs">
+                {msgs.map((w, i) => (
+                  <li key={i}>
+                    <p className="font-mono text-neutral-600 dark:text-neutral-400">
+                      {i + 1}.{" "}
+                      {w.dir === "c2s"
+                        ? "orchestrator → agent"
+                        : "agent → orchestrator"}
+                      {w.sse ? " (SSE event)" : ""}
+                    </p>
+                    <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded bg-neutral-50 p-2 font-mono text-[0.7rem] text-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
+                      {JSON.stringify("msg" in w ? w.msg : w.http)}
+                    </pre>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          </li>
+        ))}
+      </ol>
+      <details className="mt-2 rounded border border-neutral-200 p-2 dark:border-neutral-800">
+        <summary className="focus-ring min-h-11 cursor-pointer py-2 text-sm">
+          conformance/a2a_sdk_server.py
+        </summary>
+        <pre
+          tabIndex={0}
+          className="focus-ring overflow-x-auto whitespace-pre font-mono text-[0.7rem]"
+        >
+          {a2aServer}
         </pre>
       </details>
     </main>

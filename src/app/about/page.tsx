@@ -16,6 +16,7 @@ import {
   MCP_HUB,
   OAUTH_FOR_MCP,
   SDK_URL,
+  A2A_SDK_URL,
   SPEC_URL,
   TRADEOFFS_URL,
   repoFile,
@@ -24,7 +25,7 @@ import {
 export const metadata = {
   title: "About",
   description:
-    "What Agent Protocols Explained's engine simulates, what is illustrative, and how the protocol state machines are checked against the official MCP SDK.",
+    "What Agent Protocols Explained's engine simulates, what is illustrative, and how the protocol state machines are checked against the official MCP and A2A SDKs.",
 };
 
 const A =
@@ -113,8 +114,18 @@ export default function AboutPage(): JSX.Element {
           </li>
           <li>
             <strong>authorisation</strong>: the OAuth 2.1 flow MCP requires, as
-            a state machine with mis-configured variants (it drives the
-            authorisation chapter, which comes next).
+            a state machine with mis-configured variants (chapter 6);
+          </li>
+          <li>
+            <strong>A2A</strong> 1.0 (since engine 1.3.0): an orchestrating
+            agent and a remote research agent over the JSON-RPC binding with
+            SSE, the agent card, the task life cycle, multi-turn input, in-task
+            authorisation, cancellation and the error codes (chapter 8);
+          </li>
+          <li>
+            an MCP <strong>gateway</strong> over four servers with three naming
+            policies, and three <strong>attacks</strong> with and without their
+            defences (chapters 7 and 9).
           </li>
         </ul>
 
@@ -136,6 +147,17 @@ export default function AboutPage(): JSX.Element {
           </Link>{" "}
           shows the recordings.
         </p>
+        <p>
+          A2A is checked the same way: an agent written with the{" "}
+          <a href={A2A_SDK_URL} className={A}>
+            official A2A Python SDK
+          </a>{" "}
+          ({v("a2a_sdk.version", "raw")}) is driven, in process, by the
+          engine&apos;s own A2A client through {v("a2a_sdk.scenarios", "int")}{" "}
+          sessions; the engine&apos;s agent must send the same{" "}
+          {v("a2a_sdk.messages", "int")} messages once IDs and timestamps are
+          normalised.
+        </p>
 
         <h2>What is real and what is illustrative</h2>
         <ul>
@@ -150,6 +172,12 @@ export default function AboutPage(): JSX.Element {
             themselves; the resuming server of chapter 4 (resumption was
             optional). Engine-only behaviour (pagination, cancellation, list
             changes) follows the specification and is marked in the chapters.
+          </li>
+          <li>
+            Illustrative too: the A2A agents&apos; scripted replies and times,
+            the gateway&apos;s four servers, and every host, token, handle and
+            &quot;secret&quot; in the OAuth and attack walk-throughs (invented,
+            under <code>example.com</code>).
           </li>
         </ul>
 

@@ -6,7 +6,8 @@
 For every chapter (src/data/chapter_configs.json): every MCP session it animates (wire
 messages, annotated log, sequence-chart frames, negotiation, framing on stdio and Streamable
 HTTP), and the chapter's other views (the tool-call journey, the three ways, the integration
-counts, every broken-stream run). tests/unit/frames.test.ts recomputes them with the vendored
+counts, every broken-stream run, the OAuth variants and attacks as step charts, the gateway
+under each policy, every A2A session). tests/unit/frames.test.ts recomputes them with the vendored
 TS port and requires equality; tests/e2e/frames.spec.ts checks the captions on the page.
 
 The engine must be installed from git at the commit in src/lib/engine/vendor/VENDORED.json
@@ -20,7 +21,7 @@ import json
 import sys
 from pathlib import Path
 
-from agent_loop_sim.protocols import mcp, scenarios, transport, views
+from agent_loop_sim.protocols import a2a, gateway, mcp, oauth, scenarios, security, transport, views
 from agent_loop_sim.tokenizer import default_tokenizer
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -49,6 +50,17 @@ def session(name: str) -> dict:
     }
 
 
+def flow(run: dict) -> dict:
+    return dict(run, frames=views.flow_frames(run))
+
+
+def a2a_session(name: str) -> dict:
+    sc = a2a.a2a_scenario(name)
+    p = a2a.play(sc)
+    return {"name": name, "title": sc["title"], "wire": p["wire"], "log": p["log"], "card": p["card"],
+            "frames": views.a2a_frames(p), "summary": views.a2a_summary(p)}
+
+
 def build() -> str:
     vendored = json.loads((ROOT / "src/lib/engine/vendor/VENDORED.json").read_text())
     commit = installed_commit()
@@ -71,6 +83,16 @@ def build() -> str:
                 for n in cfg["drops"]["n"]:
                     for k in range(1, n):
                         ch["drops"][f"{era}-{n}-{k}"] = transport.stream_drop(era, n, k)
+        if "oauth" in cfg:
+            ch["flows"] = {v: flow(oauth.run_oauth(v)) for v in cfg["oauth"]}
+        if "attacks" in cfg:
+            ch["flows"] = {f"{a}-{'defended' if d else 'open'}": flow(security.run_security(a, d))
+                           for a in cfg["attacks"] for d in [False, True]}
+        if "gateway" in cfg:
+            ch["gateways"] = {p: gateway.gateway_run(p, tok) for p in cfg["gateway"]}
+        if "a2a" in cfg:
+            ch["a2a"] = {n: a2a_session(n) for n in cfg["a2a"]}
+            ch["taskStates"] = {"states": a2a.STATES, "transitions": a2a.TRANSITIONS}
         out["chapters"][chapter] = ch
     return json.dumps(out, ensure_ascii=False, separators=(",", ":")) + "\n"
 

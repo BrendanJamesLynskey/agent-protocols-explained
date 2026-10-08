@@ -9,7 +9,12 @@
  */
 import type { Obj } from "@/lib/engine";
 import { actorName } from "@/lib/proto/captions";
-import { ACTOR_COLOUR, MESSAGE_COLOUR, STATE_COLOUR } from "@/lib/viz/palette";
+import {
+  ACTOR_COLOUR,
+  ACTOR_SHORT,
+  MESSAGE_COLOUR,
+  STATE_COLOUR,
+} from "@/lib/viz/palette";
 
 import { useSvgFont } from "@/components/viz/useSvgFont";
 
@@ -33,16 +38,23 @@ export function SequenceChart({
   frac,
   rows = 9,
   label,
+  actors: order,
+  names,
 }: {
   frames: Obj[];
   step: number;
   frac: number;
   rows?: number;
   label: string;
+  /** The lifelines, left to right (default: the MCP actors present). */
+  actors?: string[];
+  /** Display names overriding the site-wide ones (an A2A chart's two agents). */
+  names?: Record<string, string>;
 }): JSX.Element {
   const font = useSvgFont(W);
   const fs = font.fs;
-  const actors = actorsOf(frames);
+  const actors = order ?? actorsOf(frames);
+  const nameOf = (a: string) => names?.[a] ?? actorName(a);
   const left = 52;
   const right = W - 40;
   const x = (a: string) =>
@@ -54,6 +66,21 @@ export function SequenceChart({
   const H = TOP + shown * ROW + 8;
   const span = (right - left) / Math.max(1, actors.length - 1);
   const maxChars = Math.max(12, Math.floor((span + 40) / (fs(9.5) * 0.58)));
+  // actor boxes: wide enough for the name, never wider than the gap to the next lifeline;
+  // on a phone with four or more lifelines, the short names
+  const display = (a: string) =>
+    font.narrow && actors.length >= 4
+      ? (ACTOR_SHORT[a] ?? nameOf(a))
+      : font.narrow && nameOf(a).length > 8
+        ? nameOf(a).replace("MCP ", "").replace("Research ", "")
+        : nameOf(a);
+  const boxX = (a: string) =>
+    Math.min(Math.max(x(a) - boxW(a) / 2, 2), W - 2 - boxW(a));
+  const boxW = (a: string) =>
+    Math.min(
+      actors.length > 1 ? span - 4 : 120,
+      Math.max(68, display(a).length * fs(9.5) * 0.6 + 12),
+    );
   const clipText = (s: string) =>
     s.length > maxChars ? `${s.slice(0, maxChars - 1)}…` : s;
 
@@ -95,9 +122,9 @@ export function SequenceChart({
             strokeWidth={1}
           />
           <rect
-            x={x(a) - 34}
+            x={boxX(a)}
             y={6}
-            width={68}
+            width={boxW(a)}
             height={24}
             rx={5}
             className="fill-white dark:fill-neutral-950"
@@ -105,15 +132,13 @@ export function SequenceChart({
             strokeWidth={1.5}
           />
           <text
-            x={x(a)}
+            x={boxX(a) + boxW(a) / 2}
             y={22}
             textAnchor="middle"
             style={{ fontSize: fs(9.5) }}
             className="fill-neutral-900 font-semibold dark:fill-neutral-100"
           >
-            {font.narrow && actorName(a).length > 8
-              ? actorName(a).replace("MCP ", "")
-              : actorName(a)}
+            {display(a)}
           </text>
         </g>
       ))}
@@ -124,15 +149,86 @@ export function SequenceChart({
         const x1 = x(f.from);
         const x2 = x(f.to);
         const on = k === step;
-        const kind = f.virtual ? "gate" : (f.kind as string);
+        const kind =
+          f.virtual && !["check", "fail", "attack"].includes(f.kind as string)
+            ? "gate"
+            : (f.kind as string);
         const colour = on
           ? STATE_COLOUR.active
           : (MESSAGE_COLOUR[kind] ?? "#737373");
-        const dashed = f.virtual || f.kind === "notification";
+        const dashed = f.virtual || f.kind === "notification" || f.sse === true;
         const t = on ? Math.min(1, frac * 1.25) : 1;
         const dir = x2 >= x1 ? 1 : -1;
         const xe = x1 + (x2 - x1) * t;
-        const isErr = f.kind === "error" || f.kind === "malformed";
+        const isErr =
+          f.kind === "error" ||
+          f.kind === "malformed" ||
+          f.kind === "fail" ||
+          f.kind === "attack";
+        if (f.from === f.to) {
+          // a step at one actor (a check, an attack): a marker on its lifeline, the label beside it
+          const leftHalf = x1 <= (left + right) / 2;
+          const mark =
+            f.kind === "check"
+              ? "✓"
+              : f.kind === "attack"
+                ? "!"
+                : isErr
+                  ? "✕"
+                  : "•";
+          return (
+            <g
+              key={k}
+              data-row={k}
+              data-active={on ? "true" : "false"}
+              data-kind={kind}
+            >
+              <text
+                x={4}
+                y={y + 3}
+                style={{ fontSize: fs(8.5) }}
+                className="fill-neutral-500 font-mono dark:fill-neutral-400"
+              >
+                {k + 1}
+              </text>
+              <rect
+                x={x1 - 7}
+                y={y - 7}
+                width={14}
+                height={14}
+                rx={kind === "attack" ? 0 : 7}
+                transform={
+                  kind === "attack" ? `rotate(45 ${x1} ${y})` : undefined
+                }
+                fill={on ? STATE_COLOUR.active : colour}
+                opacity={on ? 1 : 0.9}
+              />
+              <text
+                x={x1}
+                y={y + 3.5}
+                textAnchor="middle"
+                style={{ fontSize: fs(9) }}
+                className="fill-white font-semibold"
+                aria-hidden="true"
+              >
+                {mark}
+              </text>
+              <text
+                x={leftHalf ? x1 + 11 : x1 - 11}
+                y={y + 3}
+                textAnchor={leftHalf ? "start" : "end"}
+                style={{ fontSize: fs(9.5) }}
+                className={
+                  on
+                    ? "fill-neutral-900 font-mono dark:fill-neutral-100"
+                    : "fill-neutral-600 font-mono dark:fill-neutral-400"
+                }
+              >
+                {clipText(f.label as string)}
+              </text>
+            </g>
+          );
+        }
         return (
           <g
             key={k}

@@ -20,7 +20,10 @@ import {
 } from "@/lib/engine";
 import { nodeTokenizer } from "@/lib/engine/node";
 import {
+  a2aCaption,
   dropCaption,
+  flowCaption,
+  gatewayCaption,
   integrationCaption,
   journeyCaption,
   sequenceCaption,
@@ -99,6 +102,36 @@ for (const chapter of Object.keys(CHAPTER_CONFIGS) as Chapter[]) {
         expect(got.threeWays).toEqual(want.threeWays);
       });
 
+    if (want.flows)
+      it("every flow (OAuth variants, attacks), and its captions", () => {
+        expect(got.flows).toEqual(want.flows);
+        for (const [k, r] of Object.entries(want.flows as Record<string, Obj>))
+          expect((r.frames as Obj[]).map(flowCaption)).toEqual(
+            (got.flows![k]!.frames as Obj[]).map(flowCaption),
+          );
+      });
+
+    if (want.gateways)
+      it("the gateway under every policy (Qwen2.5 tokens), and its captions", () => {
+        expect(got.gateways).toEqual(want.gateways);
+        for (const [k, g] of Object.entries(
+          want.gateways as Record<string, Obj>,
+        ))
+          expect((g.frames as Obj[]).map(gatewayCaption)).toEqual(
+            (got.gateways![k]!.frames as Obj[]).map(gatewayCaption),
+          );
+      });
+
+    if (want.a2a)
+      it("every A2A session, the task states, and the captions", () => {
+        expect(got.a2a).toEqual(want.a2a);
+        expect(got.taskStates).toEqual(want.taskStates);
+        for (const [k, a] of Object.entries(want.a2a as Record<string, Obj>))
+          expect((a.frames as Obj[]).map(a2aCaption)).toEqual(
+            got.a2a![k]!.frames.map(a2aCaption),
+          );
+      });
+
     if (want.drops)
       it("every broken stream, and its captions", () => {
         expect(got.drops).toEqual(want.drops);
@@ -127,6 +160,40 @@ describe("key frames say what the model says", () => {
       "accept",
       'tools/call delete_file {"path":"build/"} + answers',
     ]);
+  });
+  it("OAuth: a token for another server is refused by the audience check", () => {
+    const f = fx.chapters.oauth.flows.wrong_audience.frames as Obj[];
+    const fail = f.find((x) => x.kind === "fail")!;
+    expect(flowCaption(fail)).toBe(
+      "MCP server checks: token audience is this server. Fails: the flow stops here.",
+    );
+    expect(f[f.length - 1]!.label).toBe("401 invalid_token");
+  });
+  it("gateway: flat names send search to the files server; prefixed names to web", () => {
+    const g = fx.chapters.gateway.gateways as Obj;
+    expect(g.flat.routed_to).toBe("files");
+    expect(g.prefix.routed_to).toBe("web");
+    expect(g.filtered.merged_tools).toBe(3);
+  });
+  it("A2A: streaming shows submitted, working, completed; the first chunk comes earlier", () => {
+    const a = fx.chapters.a2a.a2a as Obj;
+    expect(a.a2a_stream.summary.states).toEqual([
+      "TASK_STATE_SUBMITTED",
+      "TASK_STATE_WORKING",
+      "TASK_STATE_COMPLETED",
+    ]);
+    expect(a.a2a_stream.summary.first_result_ms).toBeLessThan(
+      a.a2a_send.summary.first_result_ms,
+    );
+    expect(a2aCaption(a.a2a_stream.frames[5])).toBe(
+      "1.95 s · Research agent → Orchestrator: artifactUpdate (first chunk) (SSE event, 294 bytes). Task: working.",
+    );
+  });
+  it("security: every attack does harm undefended and none defended", () => {
+    for (const [k, r] of Object.entries(
+      fx.chapters.security.flows as Record<string, Obj>,
+    ))
+      expect(r.outcome.harm, k).toBe(k.endsWith("-open"));
   });
   it("a resumed stream replays what it missed; a re-sent one redoes the work", () => {
     const d = fx.chapters.transports.drops as Obj;

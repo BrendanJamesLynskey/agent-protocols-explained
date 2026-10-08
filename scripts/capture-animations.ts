@@ -55,6 +55,31 @@ const CLIPS: Clip[] = [
     widget: "sequence-reverse",
     fps: 3,
   },
+  {
+    name: "oauth",
+    path: "/learn/06-authorisation",
+    widget: "flow-oauth",
+    fps: 3,
+  },
+  {
+    name: "gateway",
+    path: "/learn/07-gateways-and-composition",
+    widget: "gateway-widget",
+    fps: 3,
+  },
+  {
+    name: "agent-to-agent",
+    path: "/learn/08-agent-to-agent",
+    widget: "a2a-widget",
+    fps: 3,
+  },
+  {
+    name: "tool-poisoning-defended",
+    path: "/learn/09-protocol-security",
+    widget: "flow-security",
+    fps: 3,
+    radio: "on",
+  },
 ];
 
 async function main(): Promise<void> {
