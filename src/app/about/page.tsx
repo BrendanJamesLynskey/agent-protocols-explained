@@ -16,6 +16,7 @@ import {
   INFERENCE_URL,
   MCP_HUB,
   OAUTH_FOR_MCP,
+  ORCHESTRATION_URL,
   SDK_URL,
   A2A_SDK_URL,
   SPEC_URL,
@@ -56,6 +57,10 @@ export default function AboutPage(): JSX.Element {
           and followed by{" "}
           <a href={CONTEXT_URL} className={A}>
             Agent Context Explained
+          </a>{" "}
+          and{" "}
+          <a href={ORCHESTRATION_URL} className={A}>
+            Agent Orchestration Explained
           </a>
           , next to the LLM-systems sites (the{" "}
           <a href={DECODER_URL} className={A}>
