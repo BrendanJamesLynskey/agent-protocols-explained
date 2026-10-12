@@ -12,6 +12,7 @@ import {
   INFERENCE_URL,
   KERNELS_URL,
   NUMERICS_URL,
+  ORCHESTRATION_URL,
   SDK_URL,
   SILICON_URL,
   SPEC_URL,
@@ -112,6 +113,10 @@ export default function HomePage(): JSX.Element {
         and followed by{" "}
         <a href={CONTEXT_URL} className={LINK}>
           Agent Context Explained
+        </a>{" "}
+        and{" "}
+        <a href={ORCHESTRATION_URL} className={LINK}>
+          Agent Orchestration Explained
         </a>
         , alongside the LLM-systems sites: the{" "}
         <a href={DECODER_URL} className={LINK}>

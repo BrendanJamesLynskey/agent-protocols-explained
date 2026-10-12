@@ -20,14 +20,16 @@ or opens a real connection.
 ![Chapter 8: a task between two agents over A2A, its state machine lighting up as each state arrives](docs/media/agent-to-agent.gif)
 
 Part of a family of companion sites. Agents: [Agent Harnesses Explained](https://agent-harnesses-explained.vercel.app),
-this one, then [Agent Context Explained](https://agent-context-explained.vercel.app). LLM systems: the [Transformer Decoder Explainer](https://transformer-decoder-explained.vercel.app),
+this one, then [Agent Context Explained](https://agent-context-explained.vercel.app) and
+[Agent Orchestration Explained](https://agent-orchestration-explained.vercel.app). Inference: the [Transformer Decoder Explainer](https://transformer-decoder-explained.vercel.app),
 [LLM Inference Explained](https://llm-inference-explained.vercel.app),
 [LLM Architectures Explained](https://llm-architectures-explained.vercel.app),
 [GPU Kernels Explained](https://gpu-kernels-explained.vercel.app),
 [Numerics Explained](https://numerics-explained.vercel.app),
 [Systolic Arrays Explained](https://systolic-arrays-explained.vercel.app),
-[Inference Trade-offs Explained](https://inference-tradeoffs-explained.vercel.app) and the
-[Compute in Transit results](https://compute-in-transit-results.vercel.app).
+[Inference Trade-offs Explained](https://inference-tradeoffs-explained.vercel.app). Training: the
+[Compute in Transit results](https://compute-in-transit-results.vercel.app), with Training (the second part of the
+decoder site) to come.
 
 ## Chapters
 
@@ -110,7 +112,7 @@ Deploying, smoke checks and updating the engine: [RUNBOOK.md](RUNBOOK.md).
 ## Origin
 
 The structure, animation infrastructure (`useStepper`, `AnimationPanel`, the clock), MDX pipeline, CI,
-checks and the two-group site switch are copied from
+checks and the three-group site switch are copied from
 [agent-harnesses-explained](https://github.com/BrendanJamesLynskey/agent-harnesses-explained) (itself
 from gpu-kernels-explained); the engine vendoring follows llm-inference-explained.
 
