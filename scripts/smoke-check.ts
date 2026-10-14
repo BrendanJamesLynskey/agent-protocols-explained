@@ -42,6 +42,7 @@ const SWITCH = [
   'data-site-group="hardware"',
   'href="https://ai-racks-explained.vercel.app"',
   'data-site-place="protocols"',
+  'data-site-brand="true" class="focus-ring whitespace-nowrap rounded text-sm font-medium tracking-tight" href="/">Agent Protocols Explained</a>',
   'data-site-key="inference"',
   "Protocols",
   'href="https://gpu-kernels-explained.vercel.app"',

@@ -62,7 +62,8 @@ Each animation, recorded frame by frame from the engine's states (`pnpm animatio
 
 The site vendors Agent_Loop_Sim's TypeScript port at a pinned commit (`pnpm vendor:engine <sha>`;
 `src/lib/engine/vendor/VENDORED.json` records the commit and each file's SHA-256) and runs it in a Web
-Worker. Its `protocols` module (engine 1.3.0) has:
+Worker. Its `protocols` module (since engine 1.3.0; vendored at 1.11.1, where the tool-poisoning scenario's changed
+description became an abstract label) has:
 
 - MCP's **client and server as state machines** over JSON-RPC 2.0, in both eras: the handshake and
   capability negotiation, the stateless `_meta` envelope and `server/discover`, tools, resources and

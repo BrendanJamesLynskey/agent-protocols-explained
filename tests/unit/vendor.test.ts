@@ -57,7 +57,7 @@ describe("vendored engine", () => {
         "utf8",
       ),
     ) as { engine: string; plays: { name: string; wire: unknown }[] };
-    expect(fx.engine).toBe("1.3.0");
+    expect(fx.engine).toBe("1.11.1");
     for (const p of fx.plays)
       expect(proto.play(proto.protocolScenario(p.name)).wire, p.name).toEqual(
         p.wire,
@@ -73,7 +73,7 @@ describe("vendored engine", () => {
       a2a: { name: string; wire: unknown }[];
       security: { attack: string; defended: boolean; steps: unknown }[];
     };
-    expect(fx2.engine).toBe("1.3.0");
+    expect(fx2.engine).toBe("1.11.1");
     for (const a of fx2.a2a)
       expect(
         proto.a2a.play(proto.a2a.a2aScenario(a.name)).wire,
