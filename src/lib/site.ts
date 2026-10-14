@@ -22,6 +22,12 @@ export const ORCHESTRATION_URL =
 
 export const GITHUB_URL =
   "https://github.com/BrendanJamesLynskey/agent-protocols-explained";
+
+/** The author, credited in one quiet line at the foot of the About page. */
+export const AUTHOR = {
+  name: "Brendan Lynskey",
+  url: "https://github.com/BrendanJamesLynskey",
+} as const;
 export const ENGINE_URL =
   "https://github.com/BrendanJamesLynskey/Agent_Loop_Sim";
 export const SDK_URL = "https://github.com/modelcontextprotocol/python-sdk";
