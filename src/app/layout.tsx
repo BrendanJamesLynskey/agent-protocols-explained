@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s · Agent Protocols Explained",
   },
   description:
-    "How agents talk to tools, message by message: the Model Context Protocol in both its eras, JSON-RPC, tools, resources and prompts, transports, sampling and elicitation, each animated by protocol state machines checked against the official MCP SDK.",
+    "How agents talk to tools and to each other, message by message: the Model Context Protocol in both its eras, JSON-RPC, tools, resources and prompts, transports, sampling and elicitation, authorisation, gateways, agent-to-agent (A2A) and protocol security, each animated by protocol state machines checked against the official MCP and A2A SDKs.",
 };
 
 export default function RootLayout({
