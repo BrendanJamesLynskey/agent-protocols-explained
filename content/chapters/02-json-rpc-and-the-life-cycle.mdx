@@ -92,9 +92,18 @@ The first request of a 2026-07-28 session, with no handshake before it:
 | 2025-03-26 | Streamable HTTP replaces HTTP+SSE; OAuth 2.1 authorisation                                                                                                                         |
 | 2025-06-18 | Structured tool output, elicitation, the `MCP-Protocol-Version` header; JSON-RPC batching removed                                                                                  |
 | 2025-11-25 | URL-mode elicitation, tool calling in sampling, Client ID Metadata Documents, experimental tasks ([changelog](https://modelcontextprotocol.io/specification/2025-11-25/changelog)) |
-| 2026-07-28 | No handshake or sessions; `_meta` on every request; `server/discover`; `input_required` results replace server-to-client requests; no stream resumption                            |
+| 2026-07-28 | No handshake or sessions; `_meta` on every request; `server/discover`; `input_required` results replace server-to-client requests; no stream resumption; tasks become an extension |
 
 Sources: the specification's changelogs, accessed 2026-10-08 ([2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/changelog)). The rows for the first three revisions summarise the MCP series' timeline slide.
+
+### Smaller 2026-07-28 changes worth knowing
+
+Four of the revision's minor changes shape how a deployment is run (changelog re-read 2026-10-16):
+
+- **Trace context in `_meta`.** The keys `traceparent`, `tracestate` and `baggage` are reserved for OpenTelemetry trace context; when present their values must follow the W3C Trace Context and Baggage formats ([`_meta`](https://modelcontextprotocol.io/specification/2026-07-28/basic/index), SEP-414). They are the one exception to the rule that `_meta` keys carry a prefix. With no session to hang a trace on, this is how one trace follows a call from the host, through a gateway ([chapter 7](/learn/07-gateways-and-composition)), to the server, and it lines up with the OpenTelemetry semantic conventions for MCP.
+- **The `extensions` capability.** `ClientCapabilities` and `ServerCapabilities` gain an `extensions` map, from an extension's identifier (`{vendor-prefix}/{name}`, official ones under `io.modelcontextprotocol/`) to its settings, so optional features are negotiated per request like everything else ([extension negotiation](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning)). Tasks, experimental in 2025-11-25, are now the official `io.modelcontextprotocol/tasks` extension.
+- **Cacheable list results** (`ttlMs`, `cacheScope`) and a **deterministic `tools/list` order**, both in [chapter 7](/learn/07-gateways-and-composition), where a gateway caches them.
+- **A feature lifecycle.** Features move from Active to Deprecated to Removed, with a deprecation window of at least twelve months and a [registry of deprecated features](https://modelcontextprotocol.io/specification/2026-07-28/deprecated): sampling, roots and logging are in it now, with the old HTTP+SSE transport and Dynamic Client Registration ([feature lifecycle](https://modelcontextprotocol.io/community/feature-lifecycle)).
 
 <Callout kind="deeper">
 
