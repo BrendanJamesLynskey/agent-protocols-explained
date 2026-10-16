@@ -9,12 +9,13 @@ import Link from "next/link";
 
 import { SECTIONS } from "@/lib/mdx/sections";
 import { MCP_HUB, OAUTH_FOR_MCP } from "@/lib/site";
+import { withShare } from "@/lib/share";
 
-export const metadata = {
+export const metadata = withShare("/learn", {
   title: "Learn",
   description:
     "Chapters on how agents talk to tools over MCP and to each other over A2A, each built around an animation of real protocol messages from state machines checked against the official SDKs.",
-};
+});
 
 export default function LearnIndex(): JSX.Element {
   return (

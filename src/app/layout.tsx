@@ -10,10 +10,11 @@ import type { ReactNode } from "react";
 
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { SITE_URL } from "@/lib/site";
+import { withShare } from "@/lib/share";
 
 import "./globals.css";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withShare("/", {
   metadataBase: new URL(SITE_URL),
   title: {
     default: "Agent Protocols Explained",
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   },
   description:
     "How agents talk to tools and to each other, message by message: the Model Context Protocol in both its eras, JSON-RPC, tools, resources and prompts, transports, sampling and elicitation, authorisation, gateways, agent-to-agent (A2A) and protocol security, each animated by protocol state machines checked against the official MCP and A2A SDKs.",
-};
+});
 
 export default function RootLayout({
   children,
