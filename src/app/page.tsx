@@ -1,5 +1,7 @@
+import type { Route } from "next";
 import Link from "next/link";
 
+import { CheckedStrip, StartButton } from "@/components/ui/Landing";
 import { EraBars } from "@/components/viz/EraBars";
 import { formatValue, lookup } from "@/lib/proto/values";
 import { SECTIONS } from "@/lib/mdx/sections";
@@ -24,44 +26,20 @@ export default function HomePage(): JSX.Element {
       <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
         How agents talk to tools and to each other, message by message.
       </h1>
-      <div className="mt-8 grid items-center gap-8 md:grid-cols-[1fr_minmax(0,24rem)]">
+      <div className="mt-6 grid items-start gap-8 md:grid-cols-[1fr_minmax(0,24rem)]">
         <div>
           <p className="max-w-2xl text-lg text-neutral-600 dark:text-neutral-300">
-            An agent reaches its tools through a protocol. The{" "}
-            <strong>Model Context Protocol</strong> (MCP) is the common one: a
-            host&apos;s MCP client sends JSON-RPC messages to an MCP server,
-            over a pipe or over HTTP. Its current revision,{" "}
-            <a href={SPEC_URL} className={LINK}>
-              {v("spec.current", "raw")}
-            </a>
-            , dropped the handshake that every earlier revision began with: the
-            same short session now takes {v("why.modern_tour.messages", "int")}{" "}
-            messages instead of {v("why.legacy_tour.messages", "int")}.
+            An interactive guide to MCP and A2A, animated by an engine that
+            sends the same messages as the official SDKs.
           </p>
-          <p className="mt-4 max-w-2xl text-neutral-600 dark:text-neutral-300">
-            Each chapter is built around an animation of real protocol messages.
-            They come from{" "}
-            <a href={ENGINE_URL} className={LINK}>
-              Agent_Loop_Sim
-            </a>
-            &apos;s protocol state machines, and in CI the{" "}
-            <a href={SDK_URL} className={LINK}>
-              official MCP Python SDK
-            </a>{" "}
-            ({v("sdk.version", "raw")}) plays the same{" "}
-            {v("sdk.scenarios", "int")} sessions: the simulator must send the
-            same messages (see{" "}
-            <Link href="/conformance" className={LINK}>
-              the recordings
-            </Link>
-            ). Agents talk to other agents too: chapter 8 follows a task between
-            two agents over <strong>A2A</strong> 1.0, checked the same way
-            against the official A2A SDK ({v("a2a_sdk.version", "raw")}). Then
-            authorisation, gateways and the attacks on all of it. Nothing here
-            calls a live model or opens a real connection.
-          </p>
+          <div className="mt-6">
+            <StartButton href={`/learn/${SECTIONS[0]!.slug}` as Route} />
+          </div>
         </div>
-        <figure className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <figure
+          data-hero-figure
+          className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800"
+        >
           <EraBars />
           <figcaption className="mt-2 text-xs text-neutral-600 dark:text-neutral-400">
             One short session (connect, then list and use a tool, a resource and
@@ -71,6 +49,51 @@ export default function HomePage(): JSX.Element {
           </figcaption>
         </figure>
       </div>
+      <CheckedStrip href="/about#sdk">
+        The engine sends the same {v("sdk.messages", "int")} messages as the
+        official MCP Python SDK ({v("sdk.version", "raw")}) over{" "}
+        {v("sdk.scenarios", "int")} recorded sessions, and the same{" "}
+        {v("a2a_sdk.messages", "int")} as the official A2A SDK (
+        {v("a2a_sdk.version", "raw")}), compared as JSON.
+      </CheckedStrip>
+      <section aria-labelledby="learn-heading" className="mt-12">
+        <h2 id="learn-heading" className="text-xl font-semibold tracking-tight">
+          What you&apos;ll learn
+        </h2>
+        <p className="mt-4 max-w-2xl text-neutral-600 dark:text-neutral-300">
+          An agent reaches its tools through a protocol. The{" "}
+          <strong>Model Context Protocol</strong> (MCP) is the common one: a
+          host&apos;s MCP client sends JSON-RPC messages to an MCP server, over
+          a pipe or over HTTP. Its current revision,{" "}
+          <a href={SPEC_URL} className={LINK}>
+            {v("spec.current", "raw")}
+          </a>
+          , dropped the handshake that every earlier revision began with: the
+          same short session now takes {v("why.modern_tour.messages", "int")}{" "}
+          messages instead of {v("why.legacy_tour.messages", "int")}.
+        </p>
+        <p className="mt-4 max-w-2xl text-neutral-600 dark:text-neutral-300">
+          Each chapter is built around an animation of real protocol messages.
+          They come from{" "}
+          <a href={ENGINE_URL} className={LINK}>
+            Agent_Loop_Sim
+          </a>
+          &apos;s protocol state machines, and in CI the{" "}
+          <a href={SDK_URL} className={LINK}>
+            official MCP Python SDK
+          </a>{" "}
+          ({v("sdk.version", "raw")}) plays the same {v("sdk.scenarios", "int")}{" "}
+          sessions: the simulator must send the same messages (see{" "}
+          <Link href="/conformance" className={LINK}>
+            the recordings
+          </Link>
+          ). Agents talk to other agents too: chapter 8 follows a task between
+          two agents over <strong>A2A</strong> 1.0, checked the same way against
+          the official A2A SDK ({v("a2a_sdk.version", "raw")}). Then
+          authorisation, gateways and the attacks on all of it. Nothing here
+          calls a live model or opens a real connection.
+        </p>
+      </section>
       <nav
         aria-label="Chapters"
         className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"

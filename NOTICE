@@ -12,3 +12,5 @@ src/data/sdk_exchanges.json
   JSON-RPC messages recorded from the official MCP Python SDK (mcp 2.3.0, MIT,
   https://github.com/modelcontextprotocol/python-sdk) talking to Agent_Loop_Sim's
   conformance/sdk_server.py (copied here as src/data/sdk_server.py.txt).
+
+The link-preview cards are set in Noto Sans and Noto Sans Mono (subsets in src/app/_og/), under the SIL Open Font License 1.1 (src/app/_og/OFL.txt).

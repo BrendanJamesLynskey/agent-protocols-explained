@@ -24,12 +24,13 @@ import {
   TRADEOFFS_URL,
   repoFile,
 } from "@/lib/site";
+import { withShare } from "@/lib/share";
 
-export const metadata = {
+export const metadata = withShare("/about", {
   title: "About",
   description:
     "What Agent Protocols Explained's engine simulates, what is illustrative, and how the protocol state machines are checked against the official MCP and A2A SDKs.",
-};
+});
 
 const A =
   "focus-ring rounded text-accent underline underline-offset-2 dark:text-indigo-300";
@@ -140,7 +141,7 @@ export default function AboutPage(): JSX.Element {
           </li>
         </ul>
 
-        <h2>Checked against the official SDK</h2>
+        <h2 id="sdk">Checked against the official SDK</h2>
         <p>
           The protocol is not modelled from the specification alone. A small
           server written with the{" "}

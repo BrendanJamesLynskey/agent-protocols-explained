@@ -17,12 +17,13 @@ import {
   SDK_URL,
   repoFile,
 } from "@/lib/site";
+import { withShare } from "@/lib/share";
 
-export const metadata = {
+export const metadata = withShare("/conformance", {
   title: "Conformance",
   description:
     "The official MCP Python SDK's client and server, recorded over stdio: every session the simulator must reproduce, message for message.",
-};
+});
 
 const A =
   "focus-ring rounded text-accent underline underline-offset-2 dark:text-indigo-300";
