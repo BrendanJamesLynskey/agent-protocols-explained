@@ -6,6 +6,7 @@ import { EraBars } from "@/components/viz/EraBars";
 import { formatValue, lookup } from "@/lib/proto/values";
 import { SECTIONS } from "@/lib/mdx/sections";
 import { ENGINE_URL, SDK_URL, SPEC_URL } from "@/lib/site";
+import { ReadingOrder } from "@/components/ui/ReadingOrder";
 
 const LINK =
   "focus-ring rounded underline decoration-accent/40 underline-offset-4 hover:decoration-accent";
@@ -94,6 +95,7 @@ export default function HomePage(): JSX.Element {
           calls a live model or opens a real connection.
         </p>
       </section>
+      <ReadingOrder current="protocols" />
       <nav
         aria-label="Chapters"
         className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"

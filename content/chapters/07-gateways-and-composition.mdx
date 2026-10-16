@@ -21,6 +21,15 @@ A host with ten MCP servers holds ten connections, ten sets of credentials and t
 
 </Layer>
 
+## Caching the lists, and keeping them in order
+
+A gateway answers the same `tools/list` for many hosts, so it is the natural place to cache it. The 2026-07-28 revision makes that explicit with a **`CacheableResult`**: `tools/list`, `prompts/list`, `resources/list`, `resources/templates/list`, `resources/read` and `server/discover` must now carry two hints ([changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog), [caching](https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching), accessed 2026-10-16):
+
+- **`ttlMs`**, how long the result may be considered fresh, "analogous to HTTP `Cache-Control: max-age`". It is a freshness hint, not a promise, and not a polling interval; `0` means immediately stale. It complements the `listChanged` notifications rather than replacing them.
+- **`cacheScope`**, `"public"` or `"private"`. A public result has no user-specific data, and "any client, shared gateway, or caching proxy" may serve it to any user. A private one may be reused only for the same authorisation context: caches "MUST NOT be shared across authorization contexts". A gateway that filters tools by the caller's scopes ([chapter 6](/learn/06-authorisation)) is serving private lists, whatever its servers said.
+
+The same revision adds a **SHOULD** that matters to the model as much as to the gateway: servers should return `tools/list` in a deterministic order, the same order whenever the set of tools has not changed, because that "enables clients to reliably cache the tool list and improves LLM prompt cache hit rates when tools are included in model context" ([tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)). That is the "tools reordered every turn" layout of [Agent Harnesses Explained, prompt caching](https://agent-harnesses-explained.vercel.app/learn/04-prompt-caching), where rotating the tools every turn throws away the cached prefix after the system text, prevented at the source. A gateway keeps the promise only if its own merge is deterministic too: this engine merges in server-registration order, so the same four servers always give the same list.
+
 <Callout kind="illustrative">
 
 The four servers, their tools and descriptions are invented for the example; the messages follow the 2026-07-28 revision (the `_meta` envelope, `resultType`). Token counts are Qwen2.5's over the definitions as a chat template writes them; other models' tokenizers give other numbers, and a real host may add its own wrapper text. The gateway's policies are this engine's, not any product's.
@@ -64,6 +73,33 @@ The host's call under **prefix**, as it reaches the gateway:
   }
 }
 ```
+
+**In production.** A server written with the official MCP Python SDK (2.3.0) sets the cache hints per method; the tool's schema is generated from the function's signature and docstring:
+
+```python
+from mcp.server import MCPServer
+from mcp.server.caching import CacheHint
+
+mcp = MCPServer(
+    "notes",
+    version="1.0.0",
+    # 2026-07-28: the tool list is the same for every user, so gateways may share it for a minute
+    cache_hints={"tools/list": CacheHint(ttl_ms=60_000, scope="public")},
+)
+
+
+@mcp.tool()
+def search_notes(query: str, limit: int = 5) -> list[str]:
+    """Search the team's notes; return the titles of the best matches."""
+    notes = ["Cache layout", "Retry budget", "Sandbox rules"]
+    return [n for n in notes if query.lower() in n.lower()][:limit]
+
+
+if __name__ == "__main__":
+    mcp.run()  # stdio
+```
+
+Run here over stdio with the SDK's own client in 2026-07-28 mode, its `tools/list` result carried `"ttlMs": 60000, "cacheScope": "public", "resultType": "complete"`; without `cache_hints` the SDK sends the safe defaults, `0` and `"private"`.
 
 </Layer>
 
