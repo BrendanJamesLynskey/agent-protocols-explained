@@ -9,7 +9,11 @@
 
 Most traffic goes from client to server: list this, call that. Sometimes the server, half-way through a tool call, needs something only the client side has. **Elicitation** asks the **user** for a decision or a value ("Delete build/?"). **Sampling** asks the **client's model** to write something, so a server can use a language model without holding its own API key. Both run through the host, which owns the user interface and the model, and both are gates the host controls.
 
+<span id="pr-reverse" />
+
 **2025-11-25: the direction reverses.** The server sends its own JSON-RPC request to the client, `elicitation/create` or `sampling/createMessage`, with an `id` of its own (`s1` in the recordings), while the client's `tools/call` stays open. The host shows the form or asks the model, the client answers with a result for that `id`, and only then does the server finish the call. Step through **2025-11-25: elicitation, accept**: the arrows run right to left, and the client's request waits for <V of="params.work.human" fmt="ms" /> of (simulated) human thinking with the server holding its state.
+
+<span id="pr-input-required" />
 
 **2026-07-28: input_required and a retry.** Servers may no longer send requests to clients. Instead the call ends at once with `resultType: "input_required"` and the requests it needs in `inputRequests`; the host gathers the answers and sends the **same call again, with a new id**, carrying `inputResponses` ([changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog), accessed 2026-10-08; it calls the pattern multi round-trip requests). Nothing waits on the server between the rounds, which is what makes the revision stateless. Compare the two accept sessions: <V of="reverse.legacy_elicit_accept.messages" fmt="int" /> messages against <V of="reverse.modern_elicit_accept.messages" fmt="int" />, because the 2026-07-28 client does not need a handshake.
 
@@ -24,6 +28,8 @@ The user's and the model's answers are **scripted** (accept, decline, a fixed su
 </Callout>
 
 <Layer kind="maths">
+
+<span id="pr-reverse-maths" />
 
 A call that needs $r$ answers costs, in both eras,
 
@@ -105,3 +111,68 @@ while (r !== null && "result" in r && r.result.resultType === "input_required" &
 - [MCP Security & OAuth](https://brendanjameslynskey.github.io/MCP_04_Security_and_OAuth/) and the [Computer Use hub](https://brendanjameslynskey.github.io/LLM_Hub_Computer_Use/).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="pr05-q1"
+  n={1}
+  choices={[
+    "Yes, as in 2025-11-25",
+    "No: the call ends with input_required and is sent again with the answers",
+    "Only for sampling",
+  ]}
+  answer={1}
+  q="In 2026-07-28, may a server send its own request to the client half-way through a tool call?"
+  href="#pr-input-required"
+  more="input_required and a retry"
+>
+  No. The call ends at once with `resultType: "input_required"`; the host
+  gathers the answers and sends the same call again, with a new id, carrying
+  them. Nothing waits on the server between the rounds.
+</Check>
+
+<Check
+  id="pr05-q2"
+  n={2}
+  input="number"
+  of="reverse.modern_elicit_accept.messages"
+  fmt="int"
+  q="The elicitation session that ends with the user accepting, in 2026-07-28: how many messages does it take?"
+  href="#pr-input-required"
+  more="input_required and a retry"
+>
+  Fewer than the <V of="reverse.legacy_elicit_accept.messages" fmt="int" /> of
+  2025-11-25, but only because there is no handshake: the call itself costs
+  $2 + 2r$ messages in both eras.
+</Check>
+
+<Check
+  id="pr05-q3"
+  n={3}
+  choices={["One per waiting call", "Zero", "One per server"]}
+  answer={1}
+  q="In 2026-07-28, how many response streams does a server hold open while a user thinks about an elicitation?"
+  href="#pr-reverse-maths"
+  more="State and connections"
+>
+  Zero: the call has already returned `input_required`. In 2025-11-25 the
+  server holds one stream per waiting call, $\lambda\, t_h$ of them by Little's
+  law.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- Elicitation asks the user; sampling asks the client's model; both pass through gates the host controls.
+- In 2025-11-25 the server sends its own request while the client's call stays open.
+- In 2026-07-28 the call returns input_required and is retried with the answers: no state held between rounds.
+- Never ask for passwords or keys by form elicitation: URL mode sends the user to a page outside the client.
+
+<Keep>
+  A call that needs r answers costs 2 + 2r messages in both eras; only the
+  waiting differs.
+</Keep>
+
+</Remember>

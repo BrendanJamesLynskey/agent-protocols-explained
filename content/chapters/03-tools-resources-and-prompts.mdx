@@ -7,6 +7,8 @@
 
 <Layer kind="concept">
 
+<span id="pr-primitives" />
+
 A server offers three kinds of thing, and the specification tells them apart by **who decides to use them** ([server overview](https://modelcontextprotocol.io/specification/2026-07-28/server/index), accessed 2026-10-08):
 
 | Primitive     | Controlled by   | What it is                                            | Example                      |
@@ -16,6 +18,8 @@ A server offers three kinds of thing, and the specification tells them apart by 
 | **Prompts**   | the user        | templates the user picks, often as slash commands     | "/review this code"          |
 
 The animation gets the same README in front of the model three ways in one session. **As a tool**: the host lists the tools and gives their definitions to the model, which decides to call `read_doc`; the result comes back as a tool result. **As a resource**: the host lists the resources and reads `docs://readme` itself, because the application (or the user through it) chose to attach it; the model never asked. **As a prompt**: the user picks the `review` prompt and fills in its argument; the server returns ready-made messages that start the conversation.
+
+<span id="pr-path-bytes" />
 
 Each path is a list and then a get, four messages. They cost very different amounts. The tool path is the biggest, <V of="primitives.legacy.tool.bytes" fmt="bytes" /> here, because `tools/list` returns every tool's JSON Schema, and those definitions also go into the model's prompt on every turn. The resource path costs <V of="primitives.legacy.resource.bytes" fmt="bytes" /> and the prompt path <V of="primitives.legacy.prompt.bytes" fmt="bytes" />. What reaches the model is small in all three: <V of="primitives.legacy.tool.tokens" fmt="int" /> tokens of README by the tool or the resource, <V of="primitives.legacy.prompt.tokens" fmt="int" /> wrapped in the prompt's template (Qwen2.5 tokenizer). In 2026-07-28 every message carries its envelope, so the same three paths cost <V of="primitives.modern.tool.bytes" fmt="bytes" />, <V of="primitives.modern.resource.bytes" fmt="bytes" /> and <V of="primitives.modern.prompt.bytes" fmt="bytes" />.
 
@@ -30,6 +34,8 @@ The server is the small fixture server the conformance recordings use (written w
 </Callout>
 
 <Layer kind="maths">
+
+<span id="pr-primitive-maths" />
 
 For a path $p$ (its list and its get), the bytes on the wire are $B_p = \sum_{m \in p} |m|$ over its messages $m$. What matters for the model is different: the tokens $T$ that land in its context. A tool adds its definition $d$ to **every** model call, so over $n$ turns the tool path costs
 
@@ -66,3 +72,68 @@ if (method === "resources/read") {
 - A tool written with the official Python SDK, with the 2026-07-28 cache hints: [gateways and composition](/learn/07-gateways-and-composition) (its "In production" code). What a tool definition costs the model on every turn, and how current harnesses defer loading it: [Agent Harnesses Explained, the context budget](https://agent-harnesses-explained.vercel.app/learn/03-the-context-budget).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="pr03-q1"
+  n={1}
+  choices={["The model", "The application (the host)", "The user"]}
+  answer={1}
+  q="Who decides that a resource goes into the context?"
+  href="#pr-primitives"
+  more="Three primitives"
+>
+  The application. Tools are model-controlled, resources application-controlled
+  and prompts user-controlled: nothing from a resource reaches the context
+  unless the host puts it there.
+</Check>
+
+<Check
+  id="pr03-q2"
+  n={2}
+  input="number"
+  of="primitives.legacy.tool.bytes"
+  fmt="bytes"
+  q="Getting the README to the model as a tool (list, then call) in 2025-11-25: how many bytes cross the wire?"
+  href="#pr-path-bytes"
+  more="What each path costs"
+>
+  The most of the three paths: `tools/list` returns every tool's JSON Schema.
+  The resource path costs <V of="primitives.legacy.resource.bytes" fmt="bytes" />
+  and the prompt path <V of="primitives.legacy.prompt.bytes" fmt="bytes" />.
+</Check>
+
+<Check
+  id="pr03-q3"
+  n={3}
+  choices={[
+    "Once, when the tool is listed",
+    "On every model call",
+    "Only when the model calls the tool",
+  ]}
+  answer={1}
+  q="How often does a tool's definition cost the model tokens?"
+  href="#pr-primitive-maths"
+  more="Bytes against tokens"
+>
+  On every call: the host puts every tool definition in the prompt each turn,
+  so a model-controlled primitive is also a per-turn cost. A resource or a
+  prompt adds only its content, once.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- Tools are chosen by the model, resources by the application, prompts by the user.
+- Each path is a list and then a get; the tool path is the biggest because the list carries every schema.
+- A tool's definition sits in the model's prompt on every turn; a resource or a prompt costs its content once.
+- Choosing a primitive is choosing who is in control, and what text reaches the model.
+
+<Keep>
+  The README reaches the model as <V of="primitives.legacy.tool.tokens" fmt="int" />
+  tokens either way; the protocol around it is hundreds of bytes.
+</Keep>
+
+</Remember>

@@ -9,6 +9,8 @@
 
 An agent is only as useful as the tools it can reach: a file system, a database, a ticket tracker, a search index. Before a shared protocol, every agent application wrote its own connector for every tool it wanted, and every tool vendor wrote a plug-in for every agent it wanted to reach. With $N$ agents and $M$ tools that is $N \cdot M$ pieces of glue, each with its own way of describing a tool, calling it and reporting an error. Five agents and six tools need <V of="why.p2p.5x6" fmt="int" /> adapters.
 
+<span id="pr-mcp" />
+
 The **Model Context Protocol** (MCP) cuts that to $N + M$: each agent implements an MCP **client** once, each tool ships an MCP **server** once, and any client can talk to any server. The same five agents and six tools need <V of="why.protocol.5x6" fmt="int" /> implementations. Anthropic published MCP as an open protocol in November 2024 ([announcement](https://www.anthropic.com/news/model-context-protocol), accessed 2026-10-08); the specification is versioned by date, and the current revision is **<V of="spec.current" fmt="raw" />** ([versioning](https://modelcontextprotocol.io/specification/versioning), accessed <V of="spec.accessed" fmt="raw" />).
 
 The count is of things to **build**, not of connections at run time: a host that uses six servers still opens six connections. What the protocol removes is the per-pair glue.
@@ -31,11 +33,15 @@ The specification names three roles ([architecture](https://modelcontextprotocol
 
 Follow the packet. The model asks for `add`; the host looks up which connected server offers a tool of that name (it learnt the list earlier with `tools/list`); that server's client sends a `tools/call` request; the server runs the tool and answers; the client hands the content back to the host, which adds it to the model's context as a tool result. Only the two middle legs are MCP. Switch the revision: in 2026-07-28 the request also carries the protocol version and the client's identity in `_meta`, and the result names the server and says `resultType: "complete"`, because there is no handshake any more to have settled those things once ([chapter 2](/learn/02-json-rpc-and-the-life-cycle)).
 
+<span id="pr-tour-bytes" />
+
 In this session the 2025-11-25 exchange takes <V of="why.legacy_tour.messages" fmt="int" /> messages and <V of="why.legacy_tour.bytes" fmt="bytes" /> of JSON for a handshake, a ping and one use of each primitive; the 2026-07-28 one takes <V of="why.modern_tour.messages" fmt="int" /> messages but <V of="why.modern_tour.bytes" fmt="bytes" />, since every request repeats its envelope.
 
 </Layer>
 
 <Layer kind="maths">
+
+<span id="pr-adapters-maths" />
 
 With $N$ agents and $M$ tools, point-to-point integration needs one adapter per pair and a protocol needs one implementation per party:
 
@@ -70,3 +76,67 @@ if (name === "add") {
 - The companion site [Agent Harnesses Explained](https://agent-harnesses-explained.vercel.app/learn/02-tool-calling): what the model writes when it calls a tool, before the host turns it into MCP.
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="pr01-q1"
+  n={1}
+  input="number"
+  of="why.p2p.5x6"
+  fmt="int"
+  q="Five agent applications and six tools, with no shared protocol: how many adapters must be written?"
+  href="#pr-mcp"
+  more="What the protocol saves"
+>
+  One per pair, $N \cdot M$. With MCP each side implements the protocol once,
+  $N + M$ = <V of="why.protocol.5x6" fmt="int" /> pieces.
+</Check>
+
+<Check
+  id="pr01-q2"
+  n={2}
+  choices={[
+    "The 2025-11-25 one: it has more messages",
+    "The 2026-07-28 one",
+    "They send the same bytes",
+  ]}
+  answer={1}
+  q="The same tour (a ping and one use of each primitive) in both revisions: which sends more bytes of JSON?"
+  href="#pr-tour-bytes"
+  more="One tour, two revisions"
+>
+  2026-07-28: <V of="why.modern_tour.bytes" fmt="bytes" /> in <V of="why.modern_tour.messages" fmt="int" /> messages,
+  against <V of="why.legacy_tour.bytes" fmt="bytes" /> in <V of="why.legacy_tour.messages" fmt="int" /> messages. It drops the handshake
+  but repeats its envelope on every request.
+</Check>
+
+<Check
+  id="pr01-q3"
+  n={3}
+  choices={["None", "Half of them", "All but one"]}
+  answer={0}
+  q="One agent with its own M tools: how many adapters does a shared protocol save?"
+  href="#pr-adapters-maths"
+  more="The adapter count"
+>
+  None: with $N = 1$, $NM = M$ and $N + M = M + 1$. The saving,
+  $NM/(N+M)$, grows with the size of the ecosystem; one agent and its own tools
+  do not need a protocol.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- MCP turns N × M pieces of glue into N + M: one client per agent application, one server per tool.
+- Three roles: the host the user runs, one client per server inside it, and the server with its tools, resources and prompts.
+- The model never speaks MCP; the host turns its tool call into a JSON-RPC request.
+- The count is of things to build, not of connections at run time.
+
+<Keep>
+  Five agents and six tools: <V of="why.p2p.5x6" fmt="int" /> adapters point
+  to point, <V of="why.protocol.5x6" fmt="int" /> with a protocol.
+</Keep>
+
+</Remember>

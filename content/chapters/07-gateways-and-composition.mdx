@@ -9,11 +9,15 @@
 
 A host with ten MCP servers holds ten connections, ten sets of credentials and ten tool lists. A **gateway** collapses them into one: it is an MCP server to the host and an MCP client to each server behind it. It lists their tools, merges them, and routes each `tools/call` to the server that owns the tool. Step through the animation: one `tools/list` from the host fans out to the <V of="gateway.flat.tools" fmt="int" /> tools of four servers, and comes back as one list.
 
+<span id="pr-collide" />
+
 **Names collide.** Tool names are only unique within a server. Here `files`, `github` and `web` all offer `search`, and `files` and `github` both offer `read_file`. The spec's [tools page](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) (accessed 2026-10-08) says it plainly: aggregators "MAY encounter naming collisions" and "SHOULD implement a disambiguation strategy such as prefixing tool names with a server identifier", and the server's own `serverInfo.name` "SHOULD NOT be relied upon" for it, since it need not be unique.
 
 - **flat**: the first server registered wins each name. The host sees <V of="gateway.flat.merged_tools" fmt="int" /> tools; three are shadowed, silently. When the model asks for `search` meaning the web, the gateway sends it to <V of="gateway.flat.routed_to" fmt="raw" />, and the model gets "no matches in the project" back: a wrong answer, not an error.
 - **prefix**: every tool is exposed as `alias.tool` with an alias the gateway chooses (the MCP series writes `github__search`; any separator among the characters the spec allows for tool names, letters, digits, `_`, `-` and `.`, will do). All <V of="gateway.prefix.merged_tools" fmt="int" /> are reachable and `web.search` goes to <V of="gateway.prefix.routed_to" fmt="raw" />.
 - **filtered**: prefixed, and only an allow-list for the task is exposed: <V of="gateway.filtered.merged_tools" fmt="int" /> tools.
+
+<span id="pr-bill" />
 
 **The tokens are the bill.** The model reads every exposed definition in its prompt on every turn. The four servers' lists cost <V of="gateway.flat.direct_tokens" fmt="int" /> tokens together (Qwen2.5 tokenizer); prefixing every name costs a little more (<V of="gateway.prefix.merged_tokens" fmt="int" />), while flat shadowing "saves" tokens only by losing tools (<V of="gateway.flat.merged_tokens" fmt="int" />). Filtering to what the task needs cuts the list to <V of="gateway.filtered.merged_tokens" fmt="int" />. The same cost seen from the harness's side, and what it does to the context window, is [Agent Harnesses Explained, the context budget](https://agent-harnesses-explained.vercel.app/learn/03-the-context-budget).
 
@@ -112,3 +116,69 @@ Run here over stdio with the SDK's own client in 2026-07-28 mode, its `tools/lis
 - [MCP hub](https://brendanjameslynskey.github.io/LLM_Hub_MCP/).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="pr07-q1"
+  n={1}
+  input="number"
+  of="gateway.flat.merged_tools"
+  fmt="int"
+  q="The four servers offer ten tools between them. With a flat merge (first registered wins each name), how many does the host see?"
+  href="#pr-collide"
+  more="Names collide"
+>
+  Three are shadowed, silently: `search` is offered by three servers and
+  `read_file` by two. Prefixing every name with an alias makes all
+  <V of="gateway.prefix.merged_tools" fmt="int" /> reachable.
+</Check>
+
+<Check
+  id="pr07-q2"
+  n={2}
+  choices={["web", "files", "github", "An error"]}
+  answer={1}
+  q="With the flat merge, the model calls search meaning a web search. Which server gets the call?"
+  href="#pr-collide"
+  more="Names collide"
+>
+  `files`, the first registered: the model gets "no matches in the project"
+  back, a wrong answer rather than an error. With prefixes, `web.search` goes
+  to `web`.
+</Check>
+
+<Check
+  id="pr07-q3"
+  n={3}
+  input="slider"
+  min={0}
+  max={100}
+  step={1}
+  v="ch07.filteredShare"
+  fmt="pct"
+  abs={5}
+  q="Filtering to the task's allow-list: what share of the four servers' tool-list tokens is left?"
+  href="#pr-bill"
+  more="The tokens are the bill"
+>
+  <V of="gateway.filtered.merged_tokens" fmt="int" /> tokens against
+  <V of="gateway.flat.direct_tokens" fmt="int" />, and the model reads them on
+  every turn. Flat shadowing also "saves" tokens, but only by losing tools.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- A gateway is a server to the host and a client to each server behind it: one connection, one list.
+- Tool names are unique only within a server; prefix them with an alias, as the specification suggests.
+- Every exposed definition is read on every turn: filter to what the task needs.
+- In 2026-07-28 list results carry ttlMs and cacheScope, and tools/list should come back in a fixed order.
+
+<Keep>
+  Filtering cut the list from <V of="gateway.flat.direct_tokens" fmt="int" />
+  to <V of="gateway.filtered.merged_tokens" fmt="int" /> tokens a turn.
+</Keep>
+
+</Remember>
