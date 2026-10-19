@@ -11,11 +11,17 @@ MCP connects an agent to **tools**: things with a schema that do one job and ans
 
 **Discovery: the agent card.** The orchestrator first reads `/.well-known/agent-card.json`: the agent's name, the interfaces it serves (binding, URL, protocol version), its capabilities (streaming here) and its **skills**. The card is how one agent decides whether another can help, and with which URL and binding.
 
+<span id="pr-task" />
+
 **A task and its life cycle.** `SendMessage` hands over a message; the remote agent may answer with a plain **Message** (step through **A message, no task**) or create a **Task** with an ID, which moves through `submitted`, `working` and then a terminal state: `completed`, `failed`, `canceled` or `rejected`. Two states are **interrupted**: `input required` (a question back) and `auth required` (someone must sign in). The diagram under the chart lights each state as the orchestrator learns of it.
+
+<span id="pr-streaming" />
 
 **Blocking or streaming.** With `SendMessage` the orchestrator waits and sees only the end: in **Delegate and wait** the only state it ever sees is `completed`, after <V of="a2a.a2a_send.first_result_ms" fmt="ms" />. With `SendStreamingMessage` the answer is a Server-Sent Events stream: the Task, then `statusUpdate` and `artifactUpdate` events, closing when the task is done. In **Delegate and stream** the first chunk of the summary arrives at <V of="a2a.a2a_stream.first_result_ms" fmt="ms" />. Results travel as **artifacts**, not messages: the spec says messages "SHOULD NOT be used to deliver task outputs" (section 3.7).
 
 **Multi-turn.** In **Input required** the research agent asks which meeting; the orchestrator answers with a new message carrying the same `taskId` and `contextId`, and the task resumes. In **Auth required** the agent needs the user's calendar: the user signs in **outside A2A** (the spec's in-task authorisation, section 7.6, wants credentials delivered out of band, so they do not travel through a chain of agents), and the orchestrator then tells the agent.
+
+<span id="pr-endings" />
 
 **Endings and errors.** A finished task accepts nothing more: in **Cancel, then too late** cancelling again gives -32002 (`TaskNotCancelableError`) and answering or subscribing gives -32004 (`UnsupportedOperationError`). **Errors** shows the rest: an unknown task (-32001), a request without the `A2A-Version` header, which an agent MUST read as version 0.3 and so refuses (-32009), the 0.3 method name `message/send` (1.0 renamed every method to PascalCase: -32601), and a message with no parts (-32602).
 
@@ -117,3 +123,66 @@ if (TERMINAL.includes(task.status.state)) {
 - Whether a team of agents does better than one is a measurement: orchestrating them is [Agent Orchestration Explained, multi-agent patterns](https://agent-orchestration-explained.vercel.app/learn/05-multi-agent-patterns), and telling a real difference from noise is [Agent Evals Explained, comparing two agents](https://agent-evals-explained.vercel.app/learn/05-comparing-two-agents). Trusting a remote agent's card and what it sends back is [Agent Security Explained, trust boundaries](https://agent-security-explained.vercel.app/learn/01-trust-boundaries).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="pr08-q1"
+  n={1}
+  input="number"
+  v="ch08.streamGain"
+  fmt="ms"
+  q="Delegating the summary: how much sooner does the first piece of the result reach the orchestrator when streamed than when it waits, in milliseconds?"
+  href="#pr-streaming"
+  more="Blocking or streaming"
+>
+  Streamed, the first chunk arrives at <V of="a2a.a2a_stream.first_result_ms" fmt="ms" />;
+  blocking, only the end, at <V of="a2a.a2a_send.first_result_ms" fmt="ms" />. The
+  gap is a chunk-time plus a decision, and grows with the number of chunks.
+</Check>
+
+<Check
+  id="pr08-q2"
+  n={2}
+  choices={["Messages", "Artifacts", "Status updates"]}
+  answer={1}
+  q="How does an A2A task deliver its output?"
+  href="#pr-task"
+  more="A task and its life cycle"
+>
+  As artifacts. The specification says messages should not be used to deliver
+  task outputs; they carry the conversation, and artifacts the results.
+</Check>
+
+<Check
+  id="pr08-q3"
+  n={3}
+  choices={[
+    "It is cancelled again, harmlessly",
+    "An error: a finished task cannot be cancelled",
+    "It is restarted",
+  ]}
+  answer={1}
+  q="The orchestrator cancels a task that has already been cancelled. What happens?"
+  href="#pr-endings"
+  more="Endings and errors"
+>
+  Error `-32002`, `TaskNotCancelableError`: a task in a terminal state accepts
+  nothing more, and answering or subscribing to it is refused too.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- MCP connects an agent to tools; A2A connects it to another agent, which may plan, take minutes and ask questions.
+- Discovery is the agent card; work is a Task with a life cycle, including input required and auth required.
+- Streaming shows every state and the first results early; blocking shows only the end.
+- Results travel as artifacts, kept apart from messages; credentials for auth required go out of band.
+
+<Keep>
+  Streaming does not finish sooner overall; it delivers the first result
+  <V v="ch08.streamGain" fmt="ms" /> earlier here, and more with more chunks.
+</Keep>
+
+</Remember>

@@ -11,9 +11,15 @@ Every MCP message is a **JSON-RPC 2.0** message ([JSON-RPC 2.0](https://www.json
 
 **The handshake era (2024-11-05 to 2025-11-25).** A session starts with three messages. The client sends `initialize` with the version it wants, its capabilities and its name; the server answers with the version it will speak and its own capabilities; the client confirms with `notifications/initialized` ([lifecycle, 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle), accessed 2026-10-08). After that, requests carry no envelope: the connection remembers what was agreed. In the first session that is <V of="lifecycle.legacy_tour.messages" fmt="int" /> messages for a handshake, a ping, and one use of each primitive.
 
+<span id="pr-stateless" />
+
 **The stateless revision (2026-07-28).** The current revision removed the handshake, protocol-level sessions and `ping` ([changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog), accessed 2026-10-08). Instead every request carries its protocol version, the client's identity and its capabilities in `params._meta`, and every result says `resultType` and names the server. A client that wants to choose a version up front calls `server/discover` first. The price is bytes: here the envelope adds <V of="lifecycle.meta_bytes" fmt="num" /> bytes to every request on average. The gain is that any request can go to any server instance, with nothing to remember between them.
 
+<span id="pr-negotiation" />
+
 **Negotiation.** In the handshake era the client proposes a version $p$; the server replies with $p$ if it speaks it, or with the newest version it does speak, and the client must disconnect if it cannot use that. Try **An old client (2024-11-05)**: the server agrees to the old version. Try **Out of order, unknown version**: a client asking for `1999-01-01` gets `2025-11-25` back. In 2026-07-28, `server/discover` returns the server's versions and the client takes the newest one both sides speak; a request with a version the server does not speak gets error `-32022` listing the ones it does. Capabilities work the same way in both eras: a feature is usable only if the side that provides it declared it (the server for tools, resources and prompts; the client for elicitation and sampling).
+
+<span id="pr-errors" />
 
 **Errors.** Two kinds, and the difference matters to an agent. A **protocol error** is a JSON-RPC `error`: the method does not exist (`-32601`), the parameters are wrong (`-32602`), the version is not supported (`-32022`). A **tool error** is a normal result with `isError: true` and text the model can read and react to. Try **Tool errors vs protocol errors**: a tool that fails, and an unknown tool, come back as results; an unknown resource is a protocol error. The specification asks for input-validation failures to be tool errors so the model can correct itself ([tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools), accessed 2026-10-08).
 
@@ -112,3 +118,71 @@ Four of the revision's minor changes shape how a deployment is run (changelog re
 - The [MCP hub](https://brendanjameslynskey.github.io/LLM_Hub_MCP/).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="pr02-q1"
+  n={1}
+  choices={[
+    "An error: the version is unknown",
+    "2025-11-25, the newest version the server speaks",
+    "1999-01-01, as asked",
+  ]}
+  answer={1}
+  q="In the handshake era, a client asks for version 1999-01-01. What does the server answer?"
+  href="#pr-negotiation"
+  more="Negotiation"
+>
+  The server replies with the newest version it speaks, and the client must
+  disconnect if it cannot use that. In 2026-07-28 a request with an unknown
+  version gets error `-32022` listing the versions the server does speak.
+</Check>
+
+<Check
+  id="pr02-q2"
+  n={2}
+  input="number"
+  of="lifecycle.meta_bytes"
+  q="In 2026-07-28 every request carries its envelope in params._meta. How many bytes does it add per request, on average, in these sessions?"
+  href="#pr-stateless"
+  more="The stateless revision"
+>
+  The protocol version, the client's identity and its capabilities, on every
+  request: that is the price of letting any request go to any server instance
+  with nothing remembered between them.
+</Check>
+
+<Check
+  id="pr02-q3"
+  n={3}
+  choices={[
+    "A JSON-RPC error with code -32602",
+    "A normal result with isError: true",
+    "No answer at all",
+  ]}
+  answer={1}
+  q="A tool runs and fails. How does the failure come back?"
+  href="#pr-errors"
+  more="Two kinds of error"
+>
+  As a result the model can read and react to. Protocol errors are for things
+  like an unknown method or bad parameters; the specification asks for input
+  validation failures to be tool errors so the model can correct itself.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- Four message kinds: request (with an id), result, error, and notification (no id, no answer).
+- Up to 2025-11-25 a session starts with a three-message handshake; 2026-07-28 has none, and every request carries its own envelope.
+- The version used is the newest both sides speak; a feature is usable only if the side providing it declared it.
+- A failing tool is a result with isError, for the model; a protocol error is for the client.
+
+<Keep>
+  Statelessness costs about <V of="lifecycle.meta_bytes" fmt="num" /> bytes of
+  envelope per request here, and buys requests any instance can serve.
+</Keep>
+
+</Remember>

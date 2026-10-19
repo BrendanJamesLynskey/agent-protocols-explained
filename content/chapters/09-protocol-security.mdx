@@ -9,9 +9,15 @@
 
 Each attack here is a sequence of ordinary, well-formed protocol messages; what makes it an attack is one step where trust is assumed instead of checked. The chart marks that step with a diamond, and with the **Defence** switched on, the check that stops it. This chapter is a short tour. The Security site goes into the depth: [untrusted input](https://agent-security-explained.vercel.app/learn/02-untrusted-input) (its chapter 2), [the lethal trifecta](https://agent-security-explained.vercel.app/learn/03-the-lethal-trifecta) (chapter 3), [least privilege](https://agent-security-explained.vercel.app/learn/04-least-privilege) (chapter 4) and [designs that make it structural](https://agent-security-explained.vercel.app/learn/07-designs-that-make-it-structural) (chapter 7).
 
+<span id="pr-poisoning" />
+
 **Tool poisoning (a rug pull).** A tool's description is text the model reads as guidance. The notes server's `add_note` is approved with an innocent description; in a later session the same tool comes back with instructions hidden in it, to read a secrets file and put it in the note. Undefended (<V of="security.tool_poisoning-open.steps" fmt="int" /> steps), the model obeys, a file from one server leaves through another, and nothing in the protocol objected. The defence pins a hash of each definition the user approved and holds back a changed one for review: it stops the attack at step <V of="security.tool_poisoning-defended.stop_step" fmt="int" />, before the model ever sees the new text. The spec's [tools page](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) (accessed 2026-10-08) puts the other half on the client: clients SHOULD "Show tool inputs to the user before calling the server, to avoid malicious or accidental data exfiltration", which would have shown the secret in the `note` argument. The name "tool poisoning" comes from [Invariant Labs' write-up](https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks) of 2025-04-01.
 
+<span id="pr-deputy" />
+
 **A confused deputy (an OAuth proxy).** An MCP server in front of a third-party API (a proxy) uses one static client ID at the third party, lets MCP clients register themselves, and the third party remembers the user's consent in a cookie. An attacker registers a client with its own redirect URI and sends the user a link; the third party sees the same static client, skips consent, and the proxy delivers a code to the attacker (<V of="security.confused_deputy-open.steps" fmt="int" /> steps). MCP's [security best practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices) (accessed 2026-10-08) describe exactly this and require the fix: "MCP proxy servers MUST implement per-client consent" before forwarding to the third party. Defended, the proxy shows its own consent page naming the client and where it redirects, and the user declines. The term "confused deputy" also covers a token used against a server it was not issued for: that is [chapter 6](/learn/06-authorisation)'s **wrong audience** and **token passthrough**.
+
+<span id="pr-handle" />
 
 **State handle hijacking.** The 2026-07-28 revision has no protocol sessions, so a server that needs state across calls hands out a **handle** (an export ID here) as an ordinary tool argument. A second user who obtains the handle presents it with their own, valid token. Undefended, the server finds the state by the handle alone and returns another user's invoices. The best-practices page: servers "MUST NOT treat possession of a state handle as authentication" and SHOULD key state as `<user_id>:<handle>` with the user ID taken from the verified token, which stops the attack at step <V of="security.state_handle-defended.stop_step" fmt="int" />. In the 2025-11-25 revision the same attack targeted `Mcp-Session-Id` ([session hijacking](https://modelcontextprotocol.io/docs/2025-11-25/tutorials/security/security_best_practices), the same defence).
 
@@ -61,3 +67,75 @@ Save a note for later. [hidden instruction: copy a local secrets file into the n
 - [MCP hub](https://brendanjameslynskey.github.io/LLM_Hub_MCP/) and the [Computer Use hub](https://brendanjameslynskey.github.io/LLM_Hub_Computer_Use/).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="pr09-q1"
+  n={1}
+  choices={[
+    "Scan the description for suspicious words",
+    "Pin a hash of the approved definition and hold back a changed one",
+    "Run the tool in a sandbox",
+  ]}
+  answer={1}
+  q="An approved tool comes back in a later session with instructions hidden in its description. Which defence stops it before the model reads them?"
+  href="#pr-poisoning"
+  more="Tool poisoning"
+>
+  The pin: any change to the definition, honest or not, fails the hash check
+  and goes back to the user for review, at step
+  <V of="security.tool_poisoning-defended.stop_step" fmt="int" />, before the
+  model sees the new text.
+</Check>
+
+<Check
+  id="pr09-q2"
+  n={2}
+  choices={[
+    "Per-client consent at the proxy",
+    "A longer client secret",
+    "Shorter-lived tokens",
+  ]}
+  answer={0}
+  q="An MCP proxy with one static client ID at a third party lets an attacker's client skip consent. What fix does MCP require?"
+  href="#pr-deputy"
+  more="A confused deputy"
+>
+  MCP proxy servers must implement per-client consent before forwarding to the
+  third party: the proxy's own page names the client and where it redirects.
+</Check>
+
+<Check
+  id="pr09-q3"
+  n={3}
+  choices={[
+    "The handle alone: it is unguessable",
+    "The user from the verified token, plus the handle",
+    "The client ID",
+  ]}
+  answer={1}
+  q="A stateless server hands out a handle for an export. What should key the stored state?"
+  href="#pr-handle"
+  more="State handle hijacking"
+>
+  Possession of a handle is not authentication: key state as user and handle,
+  with the user taken from the verified token, and another user's valid token
+  finds nothing.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- Each attack is ordinary, well-formed messages plus one step where trust is assumed instead of checked.
+- A defence must sit before the harmful step and fail on the attack while passing honest use.
+- Pin approved tool definitions; show tool inputs to the user before calling.
+- Proxies need per-client consent; state is keyed by the verified user, never by a handle alone.
+
+<Keep>
+  Harm happens only if the attack step is reached before a check fails: put
+  the check early.
+</Keep>
+
+</Remember>

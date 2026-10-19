@@ -11,9 +11,15 @@ A local MCP server over stdio runs as the user and needs no protocol-level sign-
 
 **Discovery.** The first request has no token, so the server answers `401` with `WWW-Authenticate: Bearer resource_metadata="…"`. The client reads the server's **protected-resource metadata** ([RFC 9728](https://www.rfc-editor.org/rfc/rfc9728)), which names its authorisation server, then that server's own metadata ([RFC 8414](https://www.rfc-editor.org/rfc/rfc8414)), and checks the issuer in it is the one it asked for.
 
+<span id="pr-registration" />
+
 **Registration.** The client needs a `client_id` at an authorisation server it has never met. In 2026-07-28 the preferred way is a **Client ID Metadata Document**: the `client_id` is an HTTPS URL, and the authorisation server fetches the client's metadata from it. Dynamic Client Registration, which the [OAuth_for_MCP](https://brendanjameslynskey.github.io/OAuth_for_MCP/#/7) deck describes for the 2025-06 profile, is now deprecated but still allowed: choose **Dynamic Client Registration** to see it (<V of="oauth.dcr.steps" fmt="int" /> steps).
 
+<span id="pr-pkce" />
+
 **PKCE and the code.** The client makes a random `code_verifier` and sends only its hash, the `code_challenge`, with the user to the authorisation endpoint ([RFC 7636](https://www.rfc-editor.org/rfc/rfc7636)). The `resource` parameter ([RFC 8707](https://www.rfc-editor.org/rfc/rfc8707)) names the MCP server the token is for. On the way back the client checks `state` and the `iss` parameter ([RFC 9207](https://www.rfc-editor.org/rfc/rfc9207)), then redeems the code with the verifier itself: the authorisation server hashes it and compares. A code stolen in transit is useless without the verifier, which never left the client.
+
+<span id="pr-audience" />
 
 **The token's audience.** The authorisation server stamps the resource into the token's `aud`. The MCP server MUST check the token was issued for it, and MUST NOT pass the token on to anything else.
 
@@ -76,3 +82,71 @@ if (
 - Scopes are least privilege on the wire; the Security site shows what to grant an agent in the first place, and why audience-bound tokens matter: [Agent Security Explained, least privilege](https://agent-security-explained.vercel.app/learn/04-least-privilege).
 
 </Callout>
+
+<CheckYourself>
+
+<Check
+  id="pr06-q1"
+  n={1}
+  choices={[
+    "The code_verifier",
+    "The code_challenge, a hash of the verifier",
+    "Both",
+  ]}
+  answer={1}
+  q="In the first leg, with the user's browser, what does the client send for PKCE?"
+  href="#pr-pkce"
+  more="PKCE and the code"
+>
+  Only the hash. The verifier goes straight to the token endpoint later, so a
+  code stolen in transit is useless without it.
+</Check>
+
+<Check
+  id="pr06-q2"
+  n={2}
+  choices={[
+    "Accepted: it is signed by the right issuer",
+    "Refused with 401",
+    "Accepted with fewer scopes",
+  ]}
+  answer={1}
+  q="A valid, unexpired token from the right issuer, minted for another server, reaches this MCP server. What happens?"
+  href="#pr-audience"
+  more="The token's audience"
+>
+  Refused: the server must check that the token's audience is itself. In the
+  chart the wrong-audience flow stops at step
+  <V of="oauth.wrong_audience.stop_step" fmt="int" />.
+</Check>
+
+<Check
+  id="pr06-q3"
+  n={3}
+  input="number"
+  of="oauth.ok.http"
+  fmt="int"
+  q="With everything configured correctly, how many of the sign-in flow's steps are HTTP messages?"
+  href="#pr-registration"
+  more="Discovery and registration"
+>
+  Out of <V of="oauth.ok.steps" fmt="int" /> steps. The rest happen inside
+  the client, the browser or the authorisation server: making the verifier,
+  the user signing in, and the checks on state, issuer and audience.
+</Check>
+
+</CheckYourself>
+
+<Remember>
+
+- An MCP server reached over HTTP is an OAuth protected resource; discovery starts from its 401.
+- In 2026-07-28 a Client ID Metadata Document is the preferred registration; Dynamic Client Registration is deprecated.
+- PKCE: only the hash leaves with the user; the verifier redeems the code.
+- The server accepts a token only if its audience is this server, and never passes it on.
+
+<Keep>
+  Every "Break it" fails at a check the specification puts there: valid is
+  not enough, the token must be for this server.
+</Keep>
+
+</Remember>
